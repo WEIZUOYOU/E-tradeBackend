@@ -1,8 +1,8 @@
 package com.campus.trade.dto;
 
 import lombok.Data;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Positive;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 @Data
 public class CreateOrderRequest {
