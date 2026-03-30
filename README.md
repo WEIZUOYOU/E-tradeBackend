@@ -1,10 +1,10 @@
 # 校园二手交易平台 - 后端
 
-基于 Spring Boot 2.7 + JDBC Template 的校园二手交易平台后端，提供用户认证、商品管理、订单交易等基础功能。
+基于 Spring Boot 3.5.13 + JDBC Template 的校园二手交易平台后端，提供用户认证、商品管理、订单交易等基础功能。
 
 ## 技术栈
 
-- Spring Boot 2.7.18
+- Spring Boot 3.5.13
 - Spring Web
 - Spring JDBC Template
 - MySQL 8.0
@@ -14,7 +14,7 @@
 ## 快速启动
 
 ### 1. 环境要求
-- JDK 11+
+- JDK 21
 - MySQL 8.0+
 - Maven 3.6+
 
@@ -107,7 +107,7 @@ Cookie: JSESSIONID=xxx
 ## 目录结构
 
 ```
-src/main/java/com/example/trade/
+src/main/java/com/campus/trade/
 ├── TradeApplication.java        # 启动类
 ├── config/                      # 配置类（拦截器、静态资源）
 ├── interceptor/                 # 登录拦截器
@@ -118,7 +118,7 @@ src/main/java/com/example/trade/
 ├── dto/                         # 请求/响应DTO
 ├── common/                      # 统一响应封装
 ├── exception/                   # 全局异常处理
-└── util/                        # 工具类（文件上传）
+└── utils/                       # 工具类（文件上传）
 ```
 
 ## 后续拓展建议
