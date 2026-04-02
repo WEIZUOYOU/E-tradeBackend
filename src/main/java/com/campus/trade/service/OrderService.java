@@ -1,6 +1,7 @@
 package com.campus.trade.service;
 
 import com.campus.trade.dto.CreateOrderRequest;
+import com.campus.trade.dto.OrderDetailResponse;
 import com.campus.trade.entity.Order;
 import com.campus.trade.entity.Product;
 import com.campus.trade.entity.User;
@@ -75,5 +76,18 @@ public class OrderService {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         long seq = ORDER_SEQ.incrementAndGet() % 10000;
         return timestamp + String.format("%04d", seq);
+    }
+
+    public OrderDetailResponse getOrderDetail(Long orderId, Long currentUserId) {
+        // 1. 查询订单详情
+        OrderDetailResponse orderDetail = orderRepository.findOrderDetailById(orderId);
+        if (orderDetail == null) {
+            throw new BusinessException("订单不存在");
+        }
+        // 2. 权限校验：只有买家或卖家可以查看订单详情（管理员暂不考虑，可根据需要扩展）
+        if (!orderDetail.getBuyerId().equals(currentUserId) && !orderDetail.getSellerId().equals(currentUserId)) {
+            throw new BusinessException("无权查看该订单");
+        }
+        return orderDetail;
     }
 }
