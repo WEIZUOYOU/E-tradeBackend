@@ -13,8 +13,8 @@ public class Product {
     private BigDecimal price;
     private Integer stock;
     private String description;
-    private String imageUrls;       // 多个图片用逗号分隔，也可存JSON，简单起见用字符串
-    private Integer status;         // 0-在售 1-已下架 2-已售出
+    private String imageUrls; // 多个图片用逗号分隔，也可存JSON，简单起见用字符串
+    private Integer status; // 0-待审核 1-在售 2-已下架 3-已售出
     private Integer viewCount;
     private LocalDateTime createTime;
 }

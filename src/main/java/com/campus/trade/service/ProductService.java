@@ -48,7 +48,7 @@ public class ProductService {
         product.setStock(req.getStock());
         product.setDescription(req.getDescription());
         product.setImageUrls(imageUrls);
-        product.setStatus(0);
+        product.setStatus(0);// 待审核
         product.setViewCount(0);
 
         return productRepository.insert(product);
@@ -66,7 +66,7 @@ public class ProductService {
             throw new BusinessException("商品不存在");
         }
         // 增加浏览量（简单处理，不计入频繁更新）
-        // productRepository.incrementViewCount(productId);
+        productRepository.incrementViewCount(productId);
         return product;
     }
 
@@ -79,7 +79,7 @@ public class ProductService {
         if (!product.getSellerId().equals(sellerId)) {
             throw new BusinessException("无权操作此商品");
         }
-        int rows = productRepository.updateStatus(productId, 1);
+        int rows = productRepository.updateStatus(productId, 2); // 2-已下架
         if (rows == 0) {
             throw new BusinessException("下架失败");
         }
