@@ -22,7 +22,9 @@ public class ProductController {
 
     // 发布商品
     @PostMapping("/publish")
-    public Result<Long> publishProduct(@Validated PublishProductRequest req, HttpSession session) {
+    public Result<Long> publishProduct(
+            @ModelAttribute @Validated PublishProductRequest req,
+            HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
         if (userId == null) {
             return Result.error(401, "请先登录");
@@ -34,7 +36,7 @@ public class ProductController {
     // 商品列表
     @GetMapping("/list")
     public Result<List<Product>> listProducts(@RequestParam(defaultValue = "1") int page,
-                                              @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size) {
         List<Product> list = productService.listProducts(page, size);
         return Result.success(list);
     }
