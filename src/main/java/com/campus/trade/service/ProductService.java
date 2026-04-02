@@ -27,6 +27,9 @@ public class ProductService {
     public Long publishProduct(Long sellerId, PublishProductRequest req) {
         // 处理图片上传
         List<MultipartFile> images = req.getImages();
+        if (images == null || images.isEmpty()) {
+            throw new BusinessException("至少上传一张图片");
+        }
         List<String> savedPaths = images.stream().map(file -> {
             try {
                 return FileUploadUtils.saveFile(uploadDir, file);
