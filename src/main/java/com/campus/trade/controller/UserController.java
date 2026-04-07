@@ -3,6 +3,7 @@ package com.campus.trade.controller;
 import com.campus.trade.common.Result;
 import com.campus.trade.dto.LoginRequest;
 import com.campus.trade.dto.RegisterRequest;
+import com.campus.trade.dto.VerifyRequest;
 import com.campus.trade.entity.User;
 import com.campus.trade.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,4 +46,17 @@ public class UserController {
         }
         return Result.success(user);
     }
+
+    @PostMapping("/verify")
+    public Result<Void> verify(@RequestBody @Validated VerifyRequest req, HttpSession session) {
+
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+
+        userService.verify(userId, req);
+        return Result.success(null);
+    }
+
 }
