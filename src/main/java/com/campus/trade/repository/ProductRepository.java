@@ -66,4 +66,43 @@ public class ProductRepository {
         jdbcTemplate.update(sql, productId);
     }
 
+    // 查询当前用户的商品
+    public List<Product> findBySellerId(Long sellerId) {
+        String sql = "SELECT * FROM product WHERE seller_id = ? ORDER BY create_time DESC";
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Product.class), sellerId);
+    }
+
+    // 更新商品信息
+    public int updateProduct(Product product) {
+        String sql = "UPDATE product SET name=?, category_id=?, price=?, stock=?, description=?, image_urls=?, status=? WHERE id=? AND seller_id=?";
+        return jdbcTemplate.update(sql,
+                product.getName(),
+                product.getCategoryId(),
+                product.getPrice(),
+                product.getStock(),
+                product.getDescription(),
+                product.getImageUrls(),
+                product.getStatus(),
+                product.getId(),
+                product.getSellerId());
+    }
+
+    // 搜索商品（关键词 + 分类）
+    public List<Product> search(String keyword, Long categoryId, int page, int size) {
+        int offset = (page - 1) * size;
+
+        StringBuilder sql = new StringBuilder("SELECT * FROM product WHERE status = 1");
+
+        if (keyword != null && !keyword.isEmpty()) {
+            sql.append(" AND name LIKE '%").append(keyword).append("%'");
+        }
+
+        if (categoryId != null) {
+            sql.append(" AND category_id = ").append(categoryId);
+        }
+
+        sql.append(" ORDER BY create_time DESC LIMIT ").append(size).append(" OFFSET ").append(offset);
+
+        return jdbcTemplate.query(sql.toString(), new BeanPropertyRowMapper<>(Product.class));
+    }
 }

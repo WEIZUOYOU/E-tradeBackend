@@ -58,4 +58,40 @@ public class ProductController {
         productService.offlineProduct(id, userId);
         return Result.success(null);
     }
+
+    // 我的商品
+    @GetMapping("/my")
+    public Result<List<Product>> myProducts(HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+        return Result.success(productService.myProducts(userId));
+    }
+
+    // 更新商品
+    @PostMapping("/update/{id}")
+    public Result<Void> update(@PathVariable Long id,
+            @ModelAttribute PublishProductRequest req,
+            HttpSession session) {
+
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+
+        productService.updateProduct(userId, id, req);
+        return Result.success(null);
+    }
+
+    // 搜索商品
+    @GetMapping("/search")
+    public Result<List<Product>> search(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        return Result.success(productService.search(keyword, categoryId, page, size));
+    }
 }

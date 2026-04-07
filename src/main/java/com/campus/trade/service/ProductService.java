@@ -70,6 +70,56 @@ public class ProductService {
         return product;
     }
 
+    // 我的商品
+    public List<Product> myProducts(Long userId) {
+        return productRepository.findBySellerId(userId);
+    }
+
+    // 更新商品
+    public void updateProduct(Long userId, Long productId, PublishProductRequest req) {
+
+        Product old = productRepository.findById(productId);
+        if (old == null) {
+            throw new BusinessException("商品不存在");
+        }
+
+        if (!old.getSellerId().equals(userId)) {
+            throw new BusinessException("无权限");
+        }
+
+        // 图片处理（可选）
+        String imageUrls = old.getImageUrls();
+        if (req.getImages() != null && !req.getImages().isEmpty()) {
+            List<String> savedPaths = req.getImages().stream().map(file -> {
+                try {
+                    return FileUploadUtils.saveFile(uploadDir, file);
+                } catch (Exception e) {
+                    throw new BusinessException("图片上传失败");
+                }
+            }).toList();
+
+            imageUrls = String.join(",", savedPaths);
+        }
+
+        Product product = new Product();
+        product.setId(productId);
+        product.setSellerId(userId);
+        product.setName(req.getName());
+        product.setCategoryId(req.getCategoryId());
+        product.setPrice(req.getPrice());
+        product.setStock(req.getStock());
+        product.setDescription(req.getDescription());
+        product.setImageUrls(imageUrls);
+
+        // 重新上架
+        product.setStatus(0);
+
+        int rows = productRepository.updateProduct(product);
+        if (rows == 0) {
+            throw new BusinessException("更新失败");
+        }
+    }
+
     // 下架商品
     public void offlineProduct(Long productId, Long sellerId) {
         Product product = productRepository.findById(productId);
@@ -83,5 +133,10 @@ public class ProductService {
         if (rows == 0) {
             throw new BusinessException("下架失败");
         }
+    }
+
+    // 搜索
+    public List<Product> search(String keyword, Long categoryId, int page, int size) {
+        return productRepository.search(keyword, categoryId, page, size);
     }
 }

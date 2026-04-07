@@ -29,6 +29,10 @@ public class UserService {
         if (exist != null) {
             throw new BusinessException("手机号已注册");
         }
+        // 检查学号是否已存在
+        if (userRepository.findByStudentId(req.getStudentId()) != null) {
+            throw new BusinessException("学号已注册");
+        }
 
         User user = new User();
         user.setStudentId(req.getStudentId());
