@@ -34,7 +34,7 @@ public class UserRepository {
                 "VALUES(?, ?, ?, ?, ?, ?, NOW())";
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, new String[]{"id"});
+            PreparedStatement ps = connection.prepareStatement(sql, new String[] { "id" });
             ps.setString(1, user.getStudentId());
             ps.setString(2, user.getUsername());
             ps.setString(3, user.getPassword());
@@ -49,5 +49,18 @@ public class UserRepository {
     public void updateAvatar(Long userId, String avatarUrl) {
         String sql = "UPDATE user SET avatar = ? WHERE id = ?";
         jdbcTemplate.update(sql, avatarUrl, userId);
+    }
+
+    // 根据手机号查询
+    public User findByPhone(String phone) {
+        String sql = "SELECT * FROM user WHERE phone = ?";
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(User.class), phone)
+                .stream().findFirst().orElse(null);
+    }
+
+    // 更新实名认证信息
+    public void updateVerify(Long userId, String studentId, String realName, Integer status) {
+        String sql = "UPDATE user SET student_id=?, real_name=?, verify_status=? WHERE id=?";
+        jdbcTemplate.update(sql, studentId, realName, status, userId);
     }
 }

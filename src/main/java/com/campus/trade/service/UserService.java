@@ -2,8 +2,10 @@ package com.campus.trade.service;
 
 import com.campus.trade.dto.LoginRequest;
 import com.campus.trade.dto.RegisterRequest;
+import com.campus.trade.dto.VerifyRequest;
 import com.campus.trade.entity.User;
 import com.campus.trade.exception.BusinessException;
+import com.campus.trade.repository.SchoolUserRepository;
 import com.campus.trade.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,14 +19,17 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private SchoolUserRepository schoolUserRepository;
 
     // 注册
     public Long register(RegisterRequest req) {
-        // 检查学号是否已存在
-        User exist = userRepository.findByStudentId(req.getStudentId());
+        // 检查手机号是否已存在
+        User exist = userRepository.findByPhone(req.getPhone());
         if (exist != null) {
-            throw new BusinessException("学号已被注册");
+            throw new BusinessException("手机号已注册");
         }
+
         User user = new User();
         user.setStudentId(req.getStudentId());
         user.setUsername(req.getUsername());
@@ -38,9 +43,9 @@ public class UserService {
 
     // 登录
     public User login(LoginRequest req, HttpSession session) {
-        User user = userRepository.findByStudentId(req.getStudentId());
+        User user = userRepository.findByPhone(req.getPhone());
         if (user == null) {
-            throw new BusinessException("学号不存在");
+            throw new BusinessException("手机号未注册");
         }
         String encryptedPwd = DigestUtils.md5DigestAsHex(req.getPassword().getBytes(StandardCharsets.UTF_8));
         if (!user.getPassword().equals(encryptedPwd)) {
@@ -63,4 +68,18 @@ public class UserService {
         }
         return userRepository.findById(userId);
     }
+
+    // 实名认证方法
+    public void verify(Long userId, VerifyRequest req) {
+
+        boolean exists = schoolUserRepository.exists(req.getStudentId(), req.getRealName());
+
+        if (!exists) {
+            throw new BusinessException("学号与姓名不匹配");
+        }
+
+        // 认证通过
+        userRepository.updateVerify(userId, req.getStudentId(), req.getRealName(), 2);
+    }
+
 }
