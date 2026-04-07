@@ -105,4 +105,9 @@ public class ProductRepository {
 
         return jdbcTemplate.query(sql.toString(), new BeanPropertyRowMapper<>(Product.class));
     }
+
+    public int delete(Long productId) {
+        String sql = "DELETE FROM product WHERE id = ?";
+        return jdbcTemplate.update(sql, productId);
+    }
 }

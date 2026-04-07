@@ -94,4 +94,15 @@ public class ProductController {
 
         return Result.success(productService.search(keyword, categoryId, page, size));
     }
+
+    // 删除商品
+    @DeleteMapping("/delete/{id}")
+    public Result<Void> delete(@PathVariable Long id, HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+        productService.deleteProduct(id, userId);
+        return Result.success(null);
+    }
 }

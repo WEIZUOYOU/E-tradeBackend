@@ -139,4 +139,19 @@ public class ProductService {
     public List<Product> search(String keyword, Long categoryId, int page, int size) {
         return productRepository.search(keyword, categoryId, page, size);
     }
+
+    // 删除商品
+    public void deleteProduct(Long productId, Long sellerId) {
+        Product product = productRepository.findById(productId);
+        if (product == null) {
+            throw new BusinessException("商品不存在");
+        }
+        if (!product.getSellerId().equals(sellerId)) {
+            throw new BusinessException("无权操作此商品");
+        }
+        int rows = productRepository.delete(productId);
+        if (rows == 0) {
+            throw new BusinessException("删除失败");
+        }
+    }
 }
