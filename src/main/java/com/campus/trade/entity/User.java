@@ -5,15 +5,14 @@ import java.time.LocalDateTime;
 
 @Data
 public class User {
-    private Long id;
-    private String studentId; // 学号
+    private Integer id;           // 数据库是 INT
+    private String studentId;     // 学号
     private String username;
-    private String password; // 实际存储 BCrypt 加密后的密文
+    private String password;      // 加密密文
     private String phone;
-    private String avatar; // 头像 URL（相对路径或绝对路径）
-    private Integer creditScore; // 信用分
-    private Integer status; // 0-正常 1-冻结
-    private Integer verifyStatus; // 0未认证 1审核中 2已认证 3驳回
-    private String realName; // 真实姓名
+    private String avatar;        // 头像 URL
+    private Integer status;       // 状态：0-禁用，1-正常
+    private Integer isAuth;       // 是否实名认证：0-否，1-是 (新增)
     private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }
