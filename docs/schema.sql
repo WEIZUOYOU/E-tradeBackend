@@ -7,64 +7,147 @@ USE E_tradeDB;
 
 -- 用户表
 CREATE TABLE `user` (
-    `id` bigint PRIMARY KEY AUTO_INCREMENT,
-    `student_id` varchar(20) NOT NULL UNIQUE,
-    `username` varchar(20) NOT NULL,
-    `password` varchar(100) NOT NULL,
-    `phone` varchar(20),
-    `avatar` varchar(255),
-    `credit_score` int DEFAULT 100,
-    `status` tinyint DEFAULT 0,
-    `verify_status` INT DEFAULT 0,
-    `real_name` VARCHAR(50),
-    `create_time` datetime DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `student_id` VARCHAR(20) UNIQUE NOT NULL COMMENT '学号',
+    `username` VARCHAR(50) NOT NULL COMMENT '用户名',
+    `password` VARCHAR(255) NOT NULL COMMENT '密码（加密后）',
+    `phone` VARCHAR(20) COMMENT '手机号',
+    `avatar` VARCHAR(500) COMMENT '头像URL',
+    `status` TINYINT DEFAULT 1 COMMENT '状态：0-禁用，1-正常',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_student_id (student_id),
+    INDEX idx_phone (phone)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
--- 商品表（支持多图）
+-- 商品分类表
+CREATE TABLE `category` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `name` VARCHAR(50) NOT NULL COMMENT '分类名称',
+    `description` VARCHAR(255) COMMENT '分类描述',
+    `icon` VARCHAR(500) COMMENT '分类图标',
+    `parent_id` INT DEFAULT 0 COMMENT '父分类ID，0表示一级分类',
+    `sort_order` INT DEFAULT 0 COMMENT '排序',
+    `status` TINYINT DEFAULT 1 COMMENT '状态：0-禁用，1-正常',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_parent_id (parent_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品分类表';
+
+-- 商品表
 CREATE TABLE `product` (
-    `id` bigint PRIMARY KEY AUTO_INCREMENT,
-    `seller_id` bigint NOT NULL,
-    `category_id` bigint,
-    `name` varchar(50) NOT NULL,
-    `price` decimal(10,2) NOT NULL,
-    `stock` int NOT NULL,
-    `description` varchar(500),
-    `image_urls` text COMMENT '多张图片URL，逗号分隔', 
-    `status` tinyint DEFAULT 0,
-    `view_count` int DEFAULT 0,
-    `create_time` datetime DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `name` VARCHAR(100) NOT NULL COMMENT '商品名称',
+    `description` TEXT COMMENT '商品描述',
+    `price` DECIMAL(10,2) NOT NULL COMMENT '价格',
+    `original_price` DECIMAL(10,2) COMMENT '原价',
+    `stock` INT NOT NULL DEFAULT 1 COMMENT '库存数量',
+    `sold_count` INT DEFAULT 0 COMMENT '已售数量',
+    `view_count` INT DEFAULT 0 COMMENT '浏览数量',
+    `category_id` INT NOT NULL COMMENT '分类ID',
+    `seller_id` INT NOT NULL COMMENT '卖家ID',
+    `cover_image` VARCHAR(500) COMMENT '封面图片',
+    `images` TEXT COMMENT '商品图片列表（JSON数组）',
+    `status` TINYINT DEFAULT 1 COMMENT '状态：0-下架，1-上架，2-已售罄',
+    `is_recommend` TINYINT DEFAULT 0 COMMENT '是否推荐：0-否，1-是',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_category_id (category_id),
+    INDEX idx_seller_id (seller_id),
+    INDEX idx_status (status),
+    FOREIGN KEY (category_id) REFERENCES category(id) ON DELETE RESTRICT,
+    FOREIGN KEY (seller_id) REFERENCES user(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品表';
 
 -- 收货地址表
 CREATE TABLE `address` (
-    `id` bigint PRIMARY KEY AUTO_INCREMENT,
-    `user_id` bigint NOT NULL,
-    `contact` varchar(50) NOT NULL,           -- 收货人姓名
-    `phone` varchar(20) NOT NULL,             -- 收货人电话
-    `detail_address` varchar(200) NOT NULL,   -- 详细地址
-    `is_default` tinyint DEFAULT 0,           -- 是否默认地址
-    `create_time` datetime DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` INT NOT NULL COMMENT '用户ID',
+    `receiver_name` VARCHAR(50) NOT NULL COMMENT '收货人姓名',
+    `receiver_phone` VARCHAR(20) NOT NULL COMMENT '收货人电话',
+    `province` VARCHAR(50) NOT NULL COMMENT '省',
+    `city` VARCHAR(50) NOT NULL COMMENT '市',
+    `district` VARCHAR(50) NOT NULL COMMENT '区/县',
+    `detail_address` VARCHAR(255) NOT NULL COMMENT '详细地址',
+    `is_default` TINYINT DEFAULT 0 COMMENT '是否默认地址：0-否，1-是',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_user_id (user_id),
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='收货地址表';
 
--- 订单表（含地址和物流字段）
+-- 订单表
 CREATE TABLE `order` (
-    `id` bigint PRIMARY KEY AUTO_INCREMENT,
-    `order_no` varchar(32) NOT NULL UNIQUE,
-    `buyer_id` bigint NOT NULL,
-    `seller_id` bigint NOT NULL,
-    `product_id` bigint NOT NULL,
-    `product_name` varchar(50) NOT NULL,
-    `product_price_at_order` decimal(10,2) NOT NULL,
-    `quantity` int NOT NULL,
-    `total_amount` decimal(10,2) NOT NULL,
-    `address_id` bigint,                     -- 关联地址表
-    `logistics_company` varchar(50),
-    `tracking_no` varchar(50),
-    `status` tinyint DEFAULT 0,
-    `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-    `pay_time` datetime,
-    `complete_time` datetime
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `order_no` VARCHAR(32) UNIQUE NOT NULL COMMENT '订单编号',
+    `buyer_id` INT NOT NULL COMMENT '买家ID',
+    `seller_id` INT NOT NULL COMMENT '卖家ID',
+    `product_id` INT NOT NULL COMMENT '商品ID',
+    `product_name` VARCHAR(100) NOT NULL COMMENT '商品名称（快照）',
+    `product_image` VARCHAR(500) COMMENT '商品图片（快照）',
+    `product_price` DECIMAL(10,2) NOT NULL COMMENT '商品单价（快照）',
+    `quantity` INT NOT NULL COMMENT '购买数量',
+    `total_amount` DECIMAL(10,2) NOT NULL COMMENT '订单总金额',
+    `address_id` INT NOT NULL COMMENT '收货地址ID',
+    `receiver_info` TEXT COMMENT '收货地址快照',
+    `status` TINYINT DEFAULT 0 COMMENT '状态：0-待支付，1-已支付，2-已发货，3-已完成，4-已取消',
+    `pay_time` DATETIME COMMENT '支付时间',
+    `deliver_time` DATETIME COMMENT '发货时间',
+    `complete_time` DATETIME COMMENT '完成时间',
+    `cancel_time` DATETIME COMMENT '取消时间',
+    `remark` VARCHAR(500) COMMENT '订单备注',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_buyer_id (buyer_id),
+    INDEX idx_seller_id (seller_id),
+    INDEX idx_order_no (order_no),
+    INDEX idx_status (status),
+    INDEX idx_create_time (create_time),
+    FOREIGN KEY (buyer_id) REFERENCES user(id) ON DELETE RESTRICT,
+    FOREIGN KEY (seller_id) REFERENCES user(id) ON DELETE RESTRICT,
+    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE RESTRICT,
+    FOREIGN KEY (address_id) REFERENCES address(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单表';
+
+-- 购物车表
+CREATE TABLE `cart` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` INT NOT NULL COMMENT '用户ID',
+    `product_id` INT NOT NULL COMMENT '商品ID',
+    `quantity` INT NOT NULL DEFAULT 1 COMMENT '商品数量',
+    `selected` TINYINT DEFAULT 1 COMMENT '是否选中：0-否，1-是',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_user_product (user_id, product_id),
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='购物车表';
+
+-- 商品收藏表
+CREATE TABLE `favorite` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` INT NOT NULL COMMENT '用户ID',
+    `product_id` INT NOT NULL COMMENT '商品ID',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_user_product (user_id, product_id),
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品收藏表';
+
+-- 消息表
+CREATE TABLE `message` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `sender_id` INT NOT NULL COMMENT '发送者ID',
+    `receiver_id` INT NOT NULL COMMENT '接收者ID',
+    `content` TEXT NOT NULL COMMENT '消息内容',
+    `type` TINYINT DEFAULT 0 COMMENT '消息类型：0-文本，1-图片，2-系统通知',
+    `is_read` TINYINT DEFAULT 0 COMMENT '是否已读：0-未读，1-已读',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_sender_id (sender_id),
+    INDEX idx_receiver_id (receiver_id),
+    INDEX idx_is_read (is_read),
+    FOREIGN KEY (sender_id) REFERENCES user(id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES user(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='消息表';
 
 -- 学校用户表
 CREATE TABLE school_user (
