@@ -3,9 +3,12 @@ package com.campus.trade.config;
 import com.campus.trade.interceptor.LoginInterceptor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.io.File;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
@@ -13,23 +16,48 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${file.upload-dir}")
     private String uploadDir;
 
+    /**
+     * 配置跨域支持 (CORS)
+     * 解决前端无法访问后端接口的问题
+     */
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOriginPatterns("*") // 允许所有来源
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true) // 允许携带 Cookie
+                .maxAge(3600);
+    }
+
+    /**
+     * 配置静态资源映射
+     */
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // 自动修正路径格式：确保以 "file:" 开头且以 "/" 结尾
+        String location = uploadDir.startsWith("file:") ? uploadDir : "file:" + uploadDir;
+        if (!location.endsWith("/")) {
+            location += "/";
+        }
+        
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations(location);
+    }
+
+    /**
+     * 注册拦截器
+     */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new LoginInterceptor())
-                .addPathPatterns("/api/**")   // 拦截所有api请求
+                .addPathPatterns("/api/**")
                 .excludePathPatterns(
                         "/api/user/login",
                         "/api/user/register",
-                        "/api/product/list",   // 商品列表公开
-                        "/api/product/detail/**", // 商品详情公开
-                        "/uploads/**"          // 静态图片资源
+                        "/api/product/list",
+                        "/api/product/detail/**",
+                        "/api/category/list" // 补充：分类列表通常也应该是公开的
                 );
-    }
-
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 映射上传的图片到 /uploads/**
-        registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:" + uploadDir);
     }
 }
