@@ -1,16 +1,24 @@
 package com.campus.trade.dto;
 
-import lombok.Data;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import lombok.Data;
+import java.time.LocalDateTime;
 
 @Data
 public class CreateOrderRequest {
     @NotNull(message = "商品ID不能为空")
-    @Positive(message = "商品ID无效")
-    private Long productId;
+    private Integer productId;
 
-    @NotNull(message = "数量不能为空")
-    @Positive(message = "数量必须大于0")
+    @NotNull(message = "购买数量不能为空")
     private Integer quantity;
+
+    @NotNull(message = "地址信息不能为空")
+    private Integer addressId; // 即使是线下，通常也关联地址以获取联系电话
+
+    @NotNull(message = "交易方式不能为空")
+    private Integer tradeType; // 0-快递, 1-线下交易
+
+    // 线下交易专用字段
+    private LocalDateTime meetingTime;    // 约定时间
+    private String meetingLocation;       // 约定地点
 }
