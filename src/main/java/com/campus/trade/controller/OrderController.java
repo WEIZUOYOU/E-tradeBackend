@@ -6,6 +6,9 @@ import com.campus.trade.dto.OrderDetailResponse;
 import com.campus.trade.entity.Order;
 import com.campus.trade.exception.BusinessException;
 import com.campus.trade.service.OrderService;
+
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +23,27 @@ public class OrderController {
 
     @Autowired
     private OrderService orderService;
+    // --- 买家接口 ---
+
+    @GetMapping("/buyer/list")
+    public Result<List<OrderDetailResponse>> buyerList(@RequestParam(required = false) Integer status, HttpSession session) {
+        Integer userId = (Integer) session.getAttribute("userId");
+        return Result.success(orderService.getBuyerOrders(userId, status));
+    }
+
+    @PostMapping("/{id}/cancel")
+    public Result<Void> cancel(@PathVariable Integer id, HttpSession session) {
+        orderService.cancelOrderByBuyer(id, (Integer) session.getAttribute("userId"));
+        return Result.success();
+    }
+
+    // --- 卖家接口 ---
+
+    @GetMapping("/seller/list")
+    public Result<List<OrderDetailResponse>> sellerList(@RequestParam(required = false) Integer status, HttpSession session) {
+        Integer userId = (Integer) session.getAttribute("userId");
+        return Result.success(orderService.getSellerOrders(userId, status));
+    }
     // 1. 卖家点击“确认接单”
     @PostMapping("/{id}/confirm")
     public Result<Void> confirm(@PathVariable Integer id, HttpSession session) {

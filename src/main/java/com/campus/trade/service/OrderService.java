@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Service
@@ -26,6 +27,21 @@ public class OrderService {
     private ProductRepository productRepository;
 
     private static final AtomicLong ORDER_SEQ = new AtomicLong(0);
+
+    public List<OrderDetailResponse> getBuyerOrders(Integer buyerId, Integer status) {
+        return orderRepository.findBuyerOrders(buyerId, status);
+    }
+    public List<OrderDetailResponse> getSellerOrders(Integer sellerId, Integer status) {
+        return orderRepository.findSellerOrders(sellerId, status);
+    }
+    // 买家取消订单（仅限待确认状态）
+    @Transactional
+    public void cancelOrderByBuyer(Integer orderId, Integer buyerId) {
+        String sql = "UPDATE `order` SET status = 4 WHERE id = ? AND buyer_id = ? AND status = 0";
+        int rows = jdbcTemplate.update(sql, orderId, buyerId);
+        if (rows == 0) throw new BusinessException("订单不可取消或无权操作");
+    }
+    
     @Transactional
     public void confirmOrder(Integer orderId, Integer sellerId) {
         // 卖家确认接单：0 -> 1

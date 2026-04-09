@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.util.List;
 import java.util.Objects;
 
 @Repository
@@ -24,7 +25,32 @@ public class OrderRepository {
         String sql = "UPDATE `order` SET status = ? WHERE id = ? AND " + identityColumn + " = ?";
         return jdbcTemplate.update(sql, status, orderId, userId);
     }
-
+    // 获取买家的订单列表
+    public List<OrderDetailResponse> findBuyerOrders(Integer buyerId, Integer status) {
+        String sql = "SELECT o.*, p.name as product_name, p.cover_image as product_image " +
+                    "FROM `order` o JOIN product p ON o.product_id = p.id " +
+                    "WHERE o.buyer_id = ? " + 
+                    (status != null ? "AND o.status = ? " : "") +
+                    "ORDER BY o.create_time DESC";
+        
+        if (status != null) {
+            return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(OrderDetailResponse.class), buyerId, status);
+        }
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(OrderDetailResponse.class), buyerId);
+    }
+    // 获取卖家的待处理订单
+    public List<OrderDetailResponse> findSellerOrders(Integer sellerId, Integer status) {
+        String sql = "SELECT o.*, p.name as product_name, p.cover_image as product_image " +
+                    "FROM `order` o JOIN product p ON o.product_id = p.id " +
+                    "WHERE o.seller_id = ? " +
+                    (status != null ? "AND o.status = ? " : "") +
+                    "ORDER BY o.create_time DESC";
+        
+        if (status != null) {
+            return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(OrderDetailResponse.class), sellerId, status);
+        }
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(OrderDetailResponse.class), sellerId);
+    }
     public Integer insert(Order order) {
         // 对齐 SQL Schema 中的字段名
         String sql = "INSERT INTO `order`(order_no, buyer_id, seller_id, product_id, product_name, " +
