@@ -197,158 +197,59 @@ campus-trade-backend/
 ├── pom.xml                                 # Maven配置文件
 └── README.md                               # 项目说明文档
 
-sql表：
-```
--- 用户表
-CREATE TABLE `user` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `student_id` VARCHAR(20) UNIQUE NOT NULL COMMENT '学号',
-    `username` VARCHAR(50) NOT NULL COMMENT '用户名',
-    `password` VARCHAR(255) NOT NULL COMMENT '密码（加密后）',
-    `phone` VARCHAR(20) COMMENT '手机号',
-    `avatar` VARCHAR(500) COMMENT '头像URL',
-    `status` TINYINT DEFAULT 1 COMMENT '状态：0-禁用，1-正常',
-    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_student_id (student_id),
-    INDEX idx_phone (phone)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+🛡️ 核心用户模块
+1. 用户表 (user)
+存储账号基础信息，增加了实名认证标识。
 
--- 商品分类表
-CREATE TABLE `category` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `name` VARCHAR(50) NOT NULL COMMENT '分类名称',
-    `description` VARCHAR(255) COMMENT '分类描述',
-    `icon` VARCHAR(500) COMMENT '分类图标',
-    `parent_id` INT DEFAULT 0 COMMENT '父分类ID，0表示一级分类',
-    `sort_order` INT DEFAULT 0 COMMENT '排序',
-    `status` TINYINT DEFAULT 1 COMMENT '状态：0-禁用，1-正常',
-    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_parent_id (parent_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品分类表';
+关键字段：student_id (唯一), is_auth (实名标识)。
 
--- 商品表
-CREATE TABLE `product` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `name` VARCHAR(100) NOT NULL COMMENT '商品名称',
-    `description` TEXT COMMENT '商品描述',
-    `price` DECIMAL(10,2) NOT NULL COMMENT '价格',
-    `original_price` DECIMAL(10,2) COMMENT '原价',
-    `stock` INT NOT NULL DEFAULT 1 COMMENT '库存数量',
-    `sold_count` INT DEFAULT 0 COMMENT '已售数量',
-    `view_count` INT DEFAULT 0 COMMENT '浏览数量',
-    `category_id` INT NOT NULL COMMENT '分类ID',
-    `seller_id` INT NOT NULL COMMENT '卖家ID',
-    `cover_image` VARCHAR(500) COMMENT '封面图片',
-    `images` TEXT COMMENT '商品图片列表（JSON数组）',
-    `status` TINYINT DEFAULT 1 COMMENT '状态：0-下架，1-上架，2-已售罄',
-    `is_recommend` TINYINT DEFAULT 0 COMMENT '是否推荐：0-否，1-是',
-    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_category_id (category_id),
-    INDEX idx_seller_id (seller_id),
-    INDEX idx_status (status),
-    FOREIGN KEY (category_id) REFERENCES category(id) ON DELETE RESTRICT,
-    FOREIGN KEY (seller_id) REFERENCES user(id) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品表';
+2. 学校预存用户库 (school_user)
+用于实名认证比对的“底库”，存储全校学生的基础信息。
 
--- 收货地址表
-CREATE TABLE `address` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `user_id` INT NOT NULL COMMENT '用户ID',
-    `receiver_name` VARCHAR(50) NOT NULL COMMENT '收货人姓名',
-    `receiver_phone` VARCHAR(20) NOT NULL COMMENT '收货人电话',
-    `province` VARCHAR(50) NOT NULL COMMENT '省',
-    `city` VARCHAR(50) NOT NULL COMMENT '市',
-    `district` VARCHAR(50) NOT NULL COMMENT '区/县',
-    `detail_address` VARCHAR(255) NOT NULL COMMENT '详细地址',
-    `is_default` TINYINT DEFAULT 0 COMMENT '是否默认地址：0-否，1-是',
-    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='收货地址表';
+3. 实名认证记录表 (authentication)
+记录用户的认证申请、审核状态及上传的证件照片。
 
--- 订单表
-CREATE TABLE `order` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `order_no` VARCHAR(32) UNIQUE NOT NULL COMMENT '订单编号',
-    `buyer_id` INT NOT NULL COMMENT '买家ID',
-    `seller_id` INT NOT NULL COMMENT '卖家ID',
-    `product_id` INT NOT NULL COMMENT '商品ID',
-    `product_name` VARCHAR(100) NOT NULL COMMENT '商品名称（快照）',
-    `product_image` VARCHAR(500) COMMENT '商品图片（快照）',
-    `product_price` DECIMAL(10,2) NOT NULL COMMENT '商品单价（快照）',
-    `quantity` INT NOT NULL COMMENT '购买数量',
-    `total_amount` DECIMAL(10,2) NOT NULL COMMENT '订单总金额',
-    `address_id` INT NOT NULL COMMENT '收货地址ID',
-    `receiver_info` TEXT COMMENT '收货地址快照',
-    `status` TINYINT DEFAULT 0 COMMENT '状态：0-待支付，1-已支付，2-已发货，3-已完成，4-已取消',
-    `pay_time` DATETIME COMMENT '支付时间',
-    `deliver_time` DATETIME COMMENT '发货时间',
-    `complete_time` DATETIME COMMENT '完成时间',
-    `cancel_time` DATETIME COMMENT '取消时间',
-    `remark` VARCHAR(500) COMMENT '订单备注',
-    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_buyer_id (buyer_id),
-    INDEX idx_seller_id (seller_id),
-    INDEX idx_order_no (order_no),
-    INDEX idx_status (status),
-    INDEX idx_create_time (create_time),
-    FOREIGN KEY (buyer_id) REFERENCES user(id) ON DELETE RESTRICT,
-    FOREIGN KEY (seller_id) REFERENCES user(id) ON DELETE RESTRICT,
-    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE RESTRICT,
-    FOREIGN KEY (address_id) REFERENCES address(id) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单表';
+4. 用户信用档案表 (user_credit)
+存储信用分、成交次数和好评率，随交易完成动态更新。
 
--- 购物车表
-CREATE TABLE `cart` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `user_id` INT NOT NULL COMMENT '用户ID',
-    `product_id` INT NOT NULL COMMENT '商品ID',
-    `quantity` INT NOT NULL DEFAULT 1 COMMENT '商品数量',
-    `selected` TINYINT DEFAULT 1 COMMENT '是否选中：0-否，1-是',
-    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uk_user_product (user_id, product_id),
-    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='购物车表';
+📦 商品管理模块
+5. 商品分类表 (category)
+支持无限级分类（通过 parent_id），通常用于首页导航。
 
--- 商品收藏表
-CREATE TABLE `favorite` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `user_id` INT NOT NULL COMMENT '用户ID',
-    `product_id` INT NOT NULL COMMENT '商品ID',
-    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uk_user_product (user_id, product_id),
-    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品收藏表';
+6. 商品表 (product)
+核心表，存储单价、库存、封面及图片列表（JSON格式）。
 
--- 消息表
-CREATE TABLE `message` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `sender_id` INT NOT NULL COMMENT '发送者ID',
-    `receiver_id` INT NOT NULL COMMENT '接收者ID',
-    `content` TEXT NOT NULL COMMENT '消息内容',
-    `type` TINYINT DEFAULT 0 COMMENT '消息类型：0-文本，1-图片，2-系统通知',
-    `is_read` TINYINT DEFAULT 0 COMMENT '是否已读：0-未读，1-已读',
-    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_sender_id (sender_id),
-    INDEX idx_receiver_id (receiver_id),
-    INDEX idx_is_read (is_read),
-    FOREIGN KEY (sender_id) REFERENCES user(id) ON DELETE CASCADE,
-    FOREIGN KEY (receiver_id) REFERENCES user(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='消息表';
--- 学校用户表
-CREATE TABLE school_user (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    student_id VARCHAR(20),
-    real_name VARCHAR(50)
-);
-```
+外键：关联 category 和 seller_id (user)。
+
+7. 商品浏览记录表 (browse_history)
+记录用户“看过”的商品，用于实现“我的足迹”。
+
+8. 商品收藏表 (favorite)
+记录用户收藏的商品，采用复合唯一索引 uk_user_product 防止重复收藏。
+
+🤝 交易与订单模块
+9. 订单表 (order)
+支持校园特色的线下交易。
+
+新增字段：trade_type (0-邮寄, 1-线下), meeting_time, meeting_location。
+
+快照机制：存储 product_name 等快照，防止商品删除后订单数据显示异常。
+
+10. 收货地址表 (address)
+存储用户的常用收货信息。
+
+11. 购物车表 (cart)
+存储待下单的商品及数量。
+
+12. 订单评价表 (order_review)
+交易完成后，买家对卖家的评分及文字图片反馈。
+
+💬 互动与系统模块
+13. 消息表 (message)
+支持买卖双方的私信（聊一聊），支持文字和图片。
+
+14. 举报管理表 (report)
+用于维护校园交易环境，处理违规商品举报。
 
 
 c```
