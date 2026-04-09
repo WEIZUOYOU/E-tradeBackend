@@ -20,6 +20,29 @@ public class OrderController {
 
     @Autowired
     private OrderService orderService;
+    // 1. 卖家点击“确认接单”
+    @PostMapping("/{id}/confirm")
+    public Result<Void> confirm(@PathVariable Integer id, HttpSession session) {
+        Integer userId = (Integer) session.getAttribute("userId");
+        orderService.confirmOrder(id, userId);
+        return Result.success();
+    }
+
+    // 2. 卖家点击“我已发货/我已交付”
+    @PostMapping("/{id}/deliver")
+    public Result<Void> deliver(@PathVariable Integer id, HttpSession session) {
+        Integer userId = (Integer) session.getAttribute("userId");
+        orderService.deliverOrder(id, userId);
+        return Result.success();
+    }
+
+    // 3. 买家点击“确认收货”
+    @PostMapping("/{id}/receive")
+    public Result<Void> receive(@PathVariable Integer id, HttpSession session) {
+        Integer userId = (Integer) session.getAttribute("userId");
+        orderService.completeOrder(id, userId);
+        return Result.success();
+    }
 
     @PostMapping("/create")
     public Result<Order> createOrder(@Validated @RequestBody CreateOrderRequest req, HttpSession session) {

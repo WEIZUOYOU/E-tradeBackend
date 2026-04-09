@@ -26,6 +26,28 @@ public class OrderService {
     private ProductRepository productRepository;
 
     private static final AtomicLong ORDER_SEQ = new AtomicLong(0);
+    @Transactional
+    public void confirmOrder(Integer orderId, Integer sellerId) {
+        // 卖家确认接单：0 -> 1
+        int rows = orderRepository.updateStatusWithAuth(orderId, 1, "seller_id", sellerId);
+        if (rows == 0) throw new BusinessException("订单确认失败，请检查状态");
+    }
+
+    @Transactional
+    public void deliverOrder(Integer orderId, Integer sellerId) {
+        // 卖家确认交付（线下已见面并交货）：1 -> 2
+        int rows = orderRepository.updateStatusWithAuth(orderId, 2, "seller_id", sellerId);
+        if (rows == 0) throw new BusinessException("操作失败");
+    }
+
+    @Transactional
+    public void completeOrder(Integer orderId, Integer buyerId) {
+        // 买家确认收货：2 -> 3
+        int rows = orderRepository.updateStatusWithAuth(orderId, 3, "buyer_id", buyerId);
+        if (rows == 0) throw new BusinessException("确认收货失败");
+        
+        // 进阶逻辑：可以在此处更新卖家 credit_score 或 trade_count
+    }
 
     @Transactional
     public Order createOrder(Integer buyerId, CreateOrderRequest req) {

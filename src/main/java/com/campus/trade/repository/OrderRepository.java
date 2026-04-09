@@ -19,6 +19,11 @@ public class OrderRepository {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    // 更新订单状态，增加身份校验（卖家或买家ID）
+    public int updateStatusWithAuth(Integer orderId, Integer status, String identityColumn, Integer userId) {
+        String sql = "UPDATE `order` SET status = ? WHERE id = ? AND " + identityColumn + " = ?";
+        return jdbcTemplate.update(sql, status, orderId, userId);
+    }
 
     public Integer insert(Order order) {
         // 对齐 SQL Schema 中的字段名

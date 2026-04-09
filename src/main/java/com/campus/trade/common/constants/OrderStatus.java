@@ -4,9 +4,9 @@ import lombok.Getter;
 
 @Getter
 public enum OrderStatus {
-    WAIT_PAY(0, "待支付"),
-    PAID(1, "已支付"),
-    DELIVERED(2, "已发货/待交付"),
+    WAIT_CONFIRM(0, "待支付/确认"),
+    CONFIRMED(1, "已支付/交易中"),
+    DELIVERED(2, "已发货/交付"),
     COMPLETED(3, "已完成"),
     CANCELLED(4, "已取消");
 
