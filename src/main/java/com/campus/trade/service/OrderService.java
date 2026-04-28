@@ -39,7 +39,7 @@ public class OrderService {
     }
     // 买家取消订单（仅限待确认状态）
     @Transactional
-    public void cancelOrderByBuyer(Long orderId, Integer buyerId) {
+    public void cancelOrderByBuyer(Long orderId, Long buyerId) {
         String sql = "UPDATE `order` SET status = 4 WHERE id = ? AND buyer_id = ? AND status = 0";
         int rows = jdbcTemplate.update(sql, orderId, buyerId);
         if (rows == 0) throw new BusinessException("订单不可取消或无权操作");
