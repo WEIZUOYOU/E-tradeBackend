@@ -27,12 +27,12 @@ public class OrderController {
 
     @GetMapping("/buyer/list")
     public Result<List<OrderDetailResponse>> buyerList(@RequestParam(required = false) Integer status, HttpSession session) {
-        Integer userId = (Integer) session.getAttribute("userId");
+        Long userId = (Long) session.getAttribute("userId");
         return Result.success(orderService.getBuyerOrders(userId, status));
     }
 
     @PostMapping("/{id}/cancel")
-    public Result<Void> cancel(@PathVariable Integer id, HttpSession session) {
+    public Result<Void> cancel(@PathVariable Long id, HttpSession session) {
         orderService.cancelOrderByBuyer(id, (Integer) session.getAttribute("userId"));
         return Result.success();
     }
@@ -41,29 +41,29 @@ public class OrderController {
 
     @GetMapping("/seller/list")
     public Result<List<OrderDetailResponse>> sellerList(@RequestParam(required = false) Integer status, HttpSession session) {
-        Integer userId = (Integer) session.getAttribute("userId");
+        Long userId = (Long) session.getAttribute("userId");
         return Result.success(orderService.getSellerOrders(userId, status));
     }
     // 1. 卖家点击“确认接单”
     @PostMapping("/{id}/confirm")
-    public Result<Void> confirm(@PathVariable Integer id, HttpSession session) {
-        Integer userId = (Integer) session.getAttribute("userId");
+    public Result<Void> confirm(@PathVariable Long id, HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
         orderService.confirmOrder(id, userId);
         return Result.success();
     }
 
     // 2. 卖家点击“我已发货/我已交付”
     @PostMapping("/{id}/deliver")
-    public Result<Void> deliver(@PathVariable Integer id, HttpSession session) {
-        Integer userId = (Integer) session.getAttribute("userId");
+    public Result<Void> deliver(@PathVariable Long id, HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
         orderService.deliverOrder(id, userId);
         return Result.success();
     }
 
     // 3. 买家点击“确认收货”
     @PostMapping("/{id}/receive")
-    public Result<Void> receive(@PathVariable Integer id, HttpSession session) {
-        Integer userId = (Integer) session.getAttribute("userId");
+    public Result<Void> receive(@PathVariable Long id, HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
         orderService.completeOrder(id, userId);
         return Result.success();
     }

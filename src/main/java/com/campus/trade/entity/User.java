@@ -15,4 +15,6 @@ public class User {
     private Integer isAuth;       // 是否实名认证：0-否，1-是 (新增)
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
+    private Integer creditScore;
+    private String realName;
 }

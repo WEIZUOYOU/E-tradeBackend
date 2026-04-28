@@ -59,8 +59,10 @@ public class UserRepository {
     }
 
     // 更新实名认证信息
+// UserRepository.java
     public void updateVerify(Long userId, String studentId, String realName, Integer status) {
-        String sql = "UPDATE user SET student_id=?, real_name=?, verify_status=? WHERE id=?";
+        // 将 verify_status 改为 is_auth
+        String sql = "UPDATE user SET student_id=?, real_name=?, is_auth=? WHERE id=?";
         jdbcTemplate.update(sql, studentId, realName, status, userId);
     }
 }

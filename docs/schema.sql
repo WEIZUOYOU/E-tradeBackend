@@ -5,12 +5,13 @@ USE E_tradeDB;
 
 -- 2. 基础表：用户表 (已包含 is_auth 字段)
 CREATE TABLE `user` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,  -- 推荐 BIGINT
     `student_id` VARCHAR(20) UNIQUE NOT NULL COMMENT '学号',
     `username` VARCHAR(50) NOT NULL COMMENT '用户名',
     `password` VARCHAR(255) NOT NULL COMMENT '密码',
     `phone` VARCHAR(20) COMMENT '手机号',
     `avatar` VARCHAR(500) COMMENT '头像URL',
+    `credit_score` INT DEFAULT 100 COMMENT '信用分', -- 补充此处解决Java报错
     `status` TINYINT DEFAULT 1 COMMENT '状态：0-禁用，1-正常',
     `is_auth` TINYINT DEFAULT 0 COMMENT '是否实名认证：0-否，1-是',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -71,17 +72,17 @@ CREATE TABLE `address` (
 
 -- 6. 核心表：订单表 (已集成线下交易字段)
 CREATE TABLE `order` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `order_no` VARCHAR(32) UNIQUE NOT NULL,
-    `buyer_id` INT NOT NULL,
-    `seller_id` INT NOT NULL,
-    `product_id` INT NOT NULL,
+    `buyer_id` BIGINT NOT NULL,
+    `seller_id` BIGINT NOT NULL,
+    `product_id` BIGINT NOT NULL,
     `product_name` VARCHAR(100),
     `product_image` VARCHAR(500),
     `product_price` DECIMAL(10,2),
     `quantity` INT DEFAULT 1,
     `total_amount` DECIMAL(10,2),
-    `address_id` INT NOT NULL,
+    `address_id` BIGINT DEFAULT NULL COMMENT '线下交易时可为空',  -- 修复为可为空
     `trade_type` TINYINT DEFAULT 1 COMMENT '0-快递, 1-线下交易',
     `meeting_time` DATETIME COMMENT '线下约定时间',
     `meeting_location` VARCHAR(255) COMMENT '线下约定地点',
@@ -89,9 +90,8 @@ CREATE TABLE `order` (
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (buyer_id) REFERENCES user(id),
-    FOREIGN KEY (seller_id) REFERENCES user(id),
-    FOREIGN KEY (product_id) REFERENCES product(id),
-    FOREIGN KEY (address_id) REFERENCES address(id)
+    FOREIGN KEY (seller_id) REFERENCES user(id)
+    -- 移除了 product_id 和 address_id 的外键限制，真正实现“快照”解耦
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单表';
 
 -- 7. 互动表：购物车、收藏、消息、历史记录

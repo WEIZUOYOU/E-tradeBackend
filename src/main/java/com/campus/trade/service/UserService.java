@@ -23,7 +23,7 @@ public class UserService {
     private SchoolUserRepository schoolUserRepository;
 
     // 注册
-    public Integer register(RegisterRequest req) {
+    public Long register(RegisterRequest req) {
         // 1. 检查手机号和学号是否已存在
         if (userRepository.findByPhone(req.getPhone()) != null) {
             throw new BusinessException("手机号已注册");
@@ -71,7 +71,7 @@ public class UserService {
 
     // 获取当前登录用户
     public User getCurrentUser(HttpSession session) {
-        Integer userId = (Integer) session.getAttribute("userId");
+        Long userId = (Long) session.getAttribute("userId");
         if (userId == null) {
             return null;
         }
@@ -79,7 +79,7 @@ public class UserService {
     }
 
     // 实名认证方法
-    public void verify(Integer userId, VerifyRequest req) {
+    public void verify(Long userId, VerifyRequest req) {
         // 4. 调用学校数据库比对
         boolean exists = schoolUserRepository.exists(req.getStudentId(), req.getRealName());
 

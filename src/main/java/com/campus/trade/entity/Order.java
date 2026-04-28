@@ -6,17 +6,17 @@ import java.time.LocalDateTime;
 
 @Data
 public class Order {
-    private Integer id;
+    private Long id;
     private String orderNo;
-    private Integer buyerId;
-    private Integer sellerId;
-    private Integer productId;
+    private Long buyerId;
+    private Long sellerId;
+    private Long productId;
     private String productName;
     private String productImage;
     private BigDecimal productPrice; // 对应数据库 product_price
     private Integer quantity;
     private BigDecimal totalAmount;
-    private Integer addressId;        // 关联地址 (新增)
+    private Long addressId;        // 关联地址 (新增)
     
     // 线下交易相关字段 (新增)
     private Integer tradeType;        // 0-线上支付/快递，1-线下交易
