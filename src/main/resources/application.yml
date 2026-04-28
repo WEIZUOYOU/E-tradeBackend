@@ -6,7 +6,7 @@ spring:
     # 补充了 characterEncoding 以防止中文存入数据库乱码
     url: jdbc:mysql://localhost:3306/E_tradeDB?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf-8&allowPublicKeyRetrieval=true
     username: root
-    password: your_password # 确保这是你的数据库密码
+    password: 123123 # 确保这是你的数据库密码
     driver-class-name: com.mysql.cj.jdbc.Driver
     
   servlet:
