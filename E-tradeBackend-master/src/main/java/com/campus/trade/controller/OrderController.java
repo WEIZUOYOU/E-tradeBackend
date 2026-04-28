@@ -6,6 +6,9 @@ import com.campus.trade.dto.OrderDetailResponse;
 import com.campus.trade.entity.Order;
 import com.campus.trade.exception.BusinessException;
 import com.campus.trade.service.OrderService;
+
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +23,50 @@ public class OrderController {
 
     @Autowired
     private OrderService orderService;
+    // --- 买家接口 ---
+
+    @GetMapping("/buyer/list")
+    public Result<List<OrderDetailResponse>> buyerList(@RequestParam(required = false) Integer status, HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        return Result.success(orderService.getBuyerOrders(userId, status));
+    }
+
+    @PostMapping("/{id}/cancel")
+    public Result<Void> cancel(@PathVariable Long id, HttpSession session) {
+        orderService.cancelOrderByBuyer(id, (Integer) session.getAttribute("userId"));
+        return Result.success();
+    }
+
+    // --- 卖家接口 ---
+
+    @GetMapping("/seller/list")
+    public Result<List<OrderDetailResponse>> sellerList(@RequestParam(required = false) Integer status, HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        return Result.success(orderService.getSellerOrders(userId, status));
+    }
+    // 1. 卖家点击“确认接单”
+    @PostMapping("/{id}/confirm")
+    public Result<Void> confirm(@PathVariable Long id, HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        orderService.confirmOrder(id, userId);
+        return Result.success();
+    }
+
+    // 2. 卖家点击“我已发货/我已交付”
+    @PostMapping("/{id}/deliver")
+    public Result<Void> deliver(@PathVariable Long id, HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        orderService.deliverOrder(id, userId);
+        return Result.success();
+    }
+
+    // 3. 买家点击“确认收货”
+    @PostMapping("/{id}/receive")
+    public Result<Void> receive(@PathVariable Long id, HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        orderService.completeOrder(id, userId);
+        return Result.success();
+    }
 
     @PostMapping("/create")
     public Result<Order> createOrder(@Validated @RequestBody CreateOrderRequest req, HttpSession session) {

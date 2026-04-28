@@ -17,4 +17,5 @@ public class Product {
     private Integer status; // 0-待审核 1-在售 2-已下架 3-已售出
     private Integer viewCount;
     private LocalDateTime createTime;
+    private String coverImage; 
 }
