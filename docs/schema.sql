@@ -109,6 +109,7 @@ CREATE TABLE `favorite` (
     `id` INT PRIMARY KEY AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL,
     `product_id` BIGINT NOT NULL,
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uk_user_product (user_id, product_id),
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
