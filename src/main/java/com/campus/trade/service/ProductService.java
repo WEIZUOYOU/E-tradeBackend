@@ -47,8 +47,8 @@ public class ProductService {
         product.setPrice(req.getPrice());
         product.setStock(req.getStock());
         product.setDescription(req.getDescription());
-        product.setImageUrls(imageUrls);
-        product.setStatus(0);// 待审核
+        product.setImages(savedPaths);
+        product.setStatus(0);// 0-待审核
         product.setViewCount(0);
 
         return productRepository.insert(product);
@@ -88,17 +88,15 @@ public class ProductService {
         }
 
         // 图片处理（可选）
-        String imageUrls = old.getImageUrls();
+        List<String> savedPaths = null;
         if (req.getImages() != null && !req.getImages().isEmpty()) {
-            List<String> savedPaths = req.getImages().stream().map(file -> {
+            savedPaths = req.getImages().stream().map(file -> {
                 try {
                     return FileUploadUtils.saveFile(uploadDir, file);
                 } catch (Exception e) {
                     throw new BusinessException("图片上传失败");
                 }
             }).toList();
-
-            imageUrls = String.join(",", savedPaths);
         }
 
         Product product = new Product();
@@ -109,7 +107,11 @@ public class ProductService {
         product.setPrice(req.getPrice());
         product.setStock(req.getStock());
         product.setDescription(req.getDescription());
-        product.setImageUrls(imageUrls);
+
+        // 使用 setImages() 方法（适配前端）
+        if (savedPaths != null) {
+            product.setImages(savedPaths);
+        }
 
         // 重新上架
         product.setStatus(0);
