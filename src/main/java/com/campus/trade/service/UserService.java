@@ -2,14 +2,19 @@ package com.campus.trade.service;
 
 import com.campus.trade.dto.LoginRequest;
 import com.campus.trade.dto.RegisterRequest;
+import com.campus.trade.dto.UpdateProfileRequest;
 import com.campus.trade.dto.VerifyRequest;
 import com.campus.trade.entity.User;
 import com.campus.trade.exception.BusinessException;
 import com.campus.trade.repository.SchoolUserRepository;
 import com.campus.trade.repository.UserRepository;
+import com.campus.trade.utils.FileUploadUtils;
 import com.campus.trade.utils.PasswordUtil; // 引入新工具类
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -18,9 +23,12 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
-    
+
     @Autowired
     private SchoolUserRepository schoolUserRepository;
+
+    @Value("${file.upload-dir}")
+    private String uploadDir;
 
     // 注册
     public Long register(RegisterRequest req) {
@@ -35,14 +43,14 @@ public class UserService {
         User user = new User();
         user.setStudentId(req.getStudentId());
         user.setUsername(req.getUsername());
-        
+
         // 2. 使用更安全的 BCrypt 加密
         user.setPassword(PasswordUtil.encode(req.getPassword()));
-        
+
         user.setPhone(req.getPhone());
         user.setStatus(1); // 1-正常 (匹配之前的常量定义)
         user.setIsAuth(0); // 初始未认证
-        
+
         return userRepository.insert(user);
     }
 
@@ -53,12 +61,12 @@ public class UserService {
         if (user == null) {
             throw new BusinessException("账号不存在");
         }
-        
+
         // 3. 使用 PasswordUtil 校验密文
         if (!PasswordUtil.matches(req.getPassword(), user.getPassword())) {
             throw new BusinessException("密码错误");
         }
-        
+
         if (user.getStatus() == 0) {
             throw new BusinessException("账号已被冻结");
         }
@@ -76,6 +84,42 @@ public class UserService {
             return null;
         }
         return userRepository.findById(userId);
+    }
+
+    // 更新个人资料
+    public void updateProfile(Long userId, UpdateProfileRequest req, HttpSession session) {
+        if (!StringUtils.hasText(req.getUsername())) {
+            throw new BusinessException("用户名不能为空");
+        }
+
+        int rows = userRepository.updateUsername(userId, req.getUsername());
+        if (rows == 0) {
+            throw new BusinessException("更新用户资料失败");
+        }
+
+        User updated = userRepository.findById(userId);
+        if (session != null) {
+            session.setAttribute("user", updated);
+        }
+    }
+
+    // 上传头像
+    public String uploadAvatar(Long userId, MultipartFile file, HttpSession session) {
+        String avatarUrl;
+        try {
+            avatarUrl = FileUploadUtils.saveFile(uploadDir, file);
+        } catch (Exception e) {
+            throw new BusinessException(2003, "图片上传失败: " + e.getMessage());
+        }
+
+        userRepository.updateAvatar(userId, avatarUrl);
+
+        User updated = userRepository.findById(userId);
+        if (session != null) {
+            session.setAttribute("user", updated);
+        }
+
+        return avatarUrl;
     }
 
     // 实名认证方法

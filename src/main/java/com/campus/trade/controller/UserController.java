@@ -59,4 +59,26 @@ public class UserController {
         return Result.success(null);
     }
 
+    @PutMapping("/profile")
+    public Result<Void> updateProfile(@Validated @RequestBody com.campus.trade.dto.UpdateProfileRequest req,
+            HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+        userService.updateProfile(userId, req, session);
+        return Result.success(null);
+    }
+
+    @PostMapping("/avatar")
+    public Result<String> uploadAvatar(@RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+        String avatarUrl = userService.uploadAvatar(userId, file, session);
+        return Result.success(avatarUrl);
+    }
+
 }
