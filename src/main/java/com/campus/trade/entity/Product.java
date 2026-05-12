@@ -27,7 +27,7 @@ public class Product {
     private Integer status; // 0-待审核 1-在售 2-已下架 3-已售出
     private Integer viewCount;
     private LocalDateTime createTime;
-    private String coverImage;
+    private String coverImage; // 封面图片
 
     /**
      * 自动将 imageUrls（String）转换为 images（List）

@@ -1,7 +1,7 @@
 package com.campus.trade.service;
 
-import com.campus.trade.dto.CreateOrderRequest;
-import com.campus.trade.dto.OrderDetailResponse;
+import com.campus.trade.dto.request.CreateOrderRequest;
+import com.campus.trade.dto.response.OrderDetailResponse;
 import com.campus.trade.entity.Order;
 import com.campus.trade.entity.Product;
 import com.campus.trade.exception.BusinessException;
@@ -34,37 +34,43 @@ public class OrderService {
     public List<OrderDetailResponse> getBuyerOrders(Long buyerId, Integer status) {
         return orderRepository.findBuyerOrders(buyerId, status);
     }
+
     public List<OrderDetailResponse> getSellerOrders(Long sellerId, Integer status) {
         return orderRepository.findSellerOrders(sellerId, status);
     }
+
     // 买家取消订单（仅限待确认状态）
     @Transactional
     public void cancelOrderByBuyer(Long orderId, Long buyerId) {
         String sql = "UPDATE `order` SET status = 4 WHERE id = ? AND buyer_id = ? AND status = 0";
         int rows = jdbcTemplate.update(sql, orderId, buyerId);
-        if (rows == 0) throw new BusinessException("订单不可取消或无权操作");
+        if (rows == 0)
+            throw new BusinessException("订单不可取消或无权操作");
     }
-    
+
     @Transactional
     public void confirmOrder(Long orderId, Long sellerId) {
         // 卖家确认接单：0 -> 1
         int rows = orderRepository.updateStatusWithAuth(orderId, 1, "seller_id", sellerId);
-        if (rows == 0) throw new BusinessException("订单确认失败，请检查状态");
+        if (rows == 0)
+            throw new BusinessException("订单确认失败，请检查状态");
     }
 
     @Transactional
     public void deliverOrder(Long orderId, Long sellerId) {
         // 卖家确认交付（线下已见面并交货）：1 -> 2
         int rows = orderRepository.updateStatusWithAuth(orderId, 2, "seller_id", sellerId);
-        if (rows == 0) throw new BusinessException("操作失败");
+        if (rows == 0)
+            throw new BusinessException("操作失败");
     }
 
     @Transactional
     public void completeOrder(Long orderId, Long buyerId) {
         // 买家确认收货：2 -> 3
         int rows = orderRepository.updateStatusWithAuth(orderId, 3, "buyer_id", buyerId);
-        if (rows == 0) throw new BusinessException("确认收货失败");
-        
+        if (rows == 0)
+            throw new BusinessException("确认收货失败");
+
         // 进阶逻辑：可以在此处更新卖家 credit_score 或 trade_count
     }
 
@@ -75,7 +81,7 @@ public class OrderService {
         if (product == null) {
             throw new BusinessException("商品不存在");
         }
-        if (product.getStatus() != 1) { 
+        if (product.getStatus() != 1) {
             throw new BusinessException("商品已下架或售罄");
         }
         if (product.getStock() < req.getQuantity()) {
@@ -100,7 +106,7 @@ public class OrderService {
 
         // 4. 计算总金额与生成订单
         BigDecimal total = product.getPrice().multiply(BigDecimal.valueOf(req.getQuantity()));
-        
+
         Order order = new Order();
         order.setOrderNo(generateOrderNo());
         order.setBuyerId(buyerId);
@@ -108,18 +114,18 @@ public class OrderService {
         order.setProductId(product.getId());
         order.setProductName(product.getName());
         order.setProductImage(product.getCoverImage()); // 存储快照图片
-        order.setProductPrice(product.getPrice());      // 存储快照价格
+        order.setProductPrice(product.getPrice()); // 存储快照价格
         order.setQuantity(req.getQuantity());
         order.setTotalAmount(total);
         order.setAddressId(req.getAddressId());
-        
+
         // 线下交易字段赋值
         order.setTradeType(req.getTradeType());
         order.setMeetingTime(req.getMeetingTime());
         order.setMeetingLocation(req.getMeetingLocation());
-        
+
         order.setStatus(0); // 0-待支付/待确认
-        
+
         orderRepository.insert(order);
         return order;
     }

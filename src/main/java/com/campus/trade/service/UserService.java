@@ -1,9 +1,9 @@
 package com.campus.trade.service;
 
-import com.campus.trade.dto.LoginRequest;
-import com.campus.trade.dto.RegisterRequest;
-import com.campus.trade.dto.UpdateProfileRequest;
-import com.campus.trade.dto.VerifyRequest;
+import com.campus.trade.dto.request.LoginRequest;
+import com.campus.trade.dto.request.RegisterRequest;
+import com.campus.trade.dto.request.UpdateProfileRequest;
+import com.campus.trade.dto.request.VerifyRequest;
 import com.campus.trade.entity.User;
 import com.campus.trade.exception.BusinessException;
 import com.campus.trade.repository.SchoolUserRepository;

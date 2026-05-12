@@ -1,6 +1,6 @@
 package com.campus.trade.service;
 
-import com.campus.trade.dto.PublishProductRequest;
+import com.campus.trade.dto.request.PublishProductRequest;
 import com.campus.trade.entity.Product;
 import com.campus.trade.exception.BusinessException;
 import com.campus.trade.repository.ProductRepository;

@@ -1,6 +1,6 @@
 package com.campus.trade.service;
 
-import com.campus.trade.dto.SendMessageRequest;
+import com.campus.trade.dto.request.SendMessageRequest;
 import com.campus.trade.entity.Message;
 import com.campus.trade.repository.MessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;

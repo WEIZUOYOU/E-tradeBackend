@@ -1,7 +1,7 @@
 package com.campus.trade.controller;
 
 import com.campus.trade.common.Result;
-import com.campus.trade.dto.PublishProductRequest;
+import com.campus.trade.dto.request.PublishProductRequest;
 import com.campus.trade.entity.Product;
 import com.campus.trade.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
