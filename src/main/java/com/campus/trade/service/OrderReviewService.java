@@ -26,6 +26,9 @@ public class OrderReviewService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private CreditService creditService;
+
     @Transactional
     public void createReview(Long reviewerId, CreateReviewRequest req) {
         // 校验订单存在且已完成
@@ -69,6 +72,8 @@ public class OrderReviewService {
 
         // 更新信用分
         updateCreditScore(revieweeId, req.getRating());
+        // 更新好评率统计
+        creditService.updateReviewRate(revieweeId);
     }
 
     private void updateCreditScore(Long userId, Integer rating) {

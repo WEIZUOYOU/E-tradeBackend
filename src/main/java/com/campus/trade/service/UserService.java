@@ -30,6 +30,9 @@ public class UserService {
     @Value("${file.upload-dir}")
     private String uploadDir;
 
+    @Autowired
+    private CreditService creditService;
+
     // 注册
     public Long register(RegisterRequest req) {
         // 1. 检查手机号和学号是否已存在
@@ -51,7 +54,10 @@ public class UserService {
         user.setStatus(1); // 1-正常 (匹配之前的常量定义)
         user.setIsAuth(0); // 初始未认证
 
-        return userRepository.insert(user);
+        Long userId = userRepository.insert(user);
+        // 初始化信用档案
+        creditService.initializeCredit(userId);
+        return userId;
     }
 
     // 登录

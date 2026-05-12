@@ -48,4 +48,10 @@ public class OrderReviewRepository {
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, orderId, reviewerId, reviewType);
         return count != null && count > 0;
     }
+
+    // 查询用户收到的所有评价
+    public List<OrderReview> findByRevieweeId(Long revieweeId) {
+        String sql = "SELECT * FROM order_review WHERE reviewee_id = ? ORDER BY create_time DESC";
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(OrderReview.class), revieweeId);
+    }
 }
