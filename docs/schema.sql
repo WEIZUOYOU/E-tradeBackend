@@ -144,11 +144,15 @@ CREATE TABLE `user_credit` (
 CREATE TABLE `order_review` (
     `id` INT PRIMARY KEY AUTO_INCREMENT,
     `order_id` BIGINT NOT NULL,
-    `buyer_id` BIGINT NOT NULL,
+    `reviewer_id` BIGINT NOT NULL,
+    `reviewee_id` BIGINT NOT NULL,
+    `review_type` TINYINT NOT NULL COMMENT '0-买家评价卖家, 1-卖家评价买家',
     `rating` TINYINT COMMENT '1-5星',
     `content` VARCHAR(500),
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (order_id) REFERENCES `order`(id) ON DELETE CASCADE
+    FOREIGN KEY (order_id) REFERENCES `order`(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewer_id) REFERENCES user(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewee_id) REFERENCES user(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `authentication` (

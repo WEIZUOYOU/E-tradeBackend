@@ -70,4 +70,10 @@ public class UserRepository {
         String sql = "UPDATE user SET student_id=?, real_name=?, is_auth=? WHERE id=?";
         jdbcTemplate.update(sql, studentId, realName, status, userId);
     }
+
+    // 更新信用分
+    public void updateCreditScore(Long userId, int scoreChange) {
+        String sql = "UPDATE user SET credit_score = GREATEST(0, credit_score + ?) WHERE id = ?";
+        jdbcTemplate.update(sql, scoreChange, userId);
+    }
 }
