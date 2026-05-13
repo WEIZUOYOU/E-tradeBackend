@@ -18,6 +18,9 @@ public enum ResultCode {
     USER_ALREADY_AUTH(1003, "您已完成实名认证，无需重复申请"),
     USER_NOT_AUTH(1004, "请先完成实名认证再进行交易"),
     STUDENT_ID_NOT_FOUND(1005, "校园库中未查找到该学号信息"),
+    USER_ALREADY_FROZEN(1006, "账号已被冻结"),
+    USER_NOT_FROZEN(1007, "账号未被冻结，无需解冻"),
+    PASSWORD_REQUIRED(1008, "新密码不能为空"),
 
     // --- 3. 商品/库存相关 (2000-2999) ---
     PRODUCT_OFFLINE(2001, "商品已下架或已售罄"),

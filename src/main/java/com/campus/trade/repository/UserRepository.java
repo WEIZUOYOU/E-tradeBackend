@@ -77,4 +77,37 @@ public class UserRepository {
         String sql = "UPDATE user SET credit_score = GREATEST(0, credit_score + ?) WHERE id = ?";
         jdbcTemplate.update(sql, scoreChange, userId);
     }
+
+    // 冻结/解冻账号
+    public int updateStatus(Long userId, Integer status) {
+        String sql = "UPDATE user SET status = ?, update_time = NOW() WHERE id = ?";
+        return jdbcTemplate.update(sql, status, userId);
+    }
+
+    // 重置密码
+    public int updatePassword(Long userId, String encodedPassword) {
+        String sql = "UPDATE user SET password = ?, update_time = NOW() WHERE id = ?";
+        return jdbcTemplate.update(sql, encodedPassword, userId);
+    }
+
+    // 分页查询全部用户
+    public List<User> findAll(int page, int size) {
+        int offset = (page - 1) * size;
+        String sql = "SELECT * FROM user ORDER BY create_time DESC LIMIT ? OFFSET ?";
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(User.class), size, offset);
+    }
+
+    // 按状态分页查询用户
+    public List<User> findByStatus(Integer status, int page, int size) {
+        int offset = (page - 1) * size;
+        String sql = "SELECT * FROM user WHERE status = ? ORDER BY create_time DESC LIMIT ? OFFSET ?";
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(User.class), status, size, offset);
+    }
+
+    // 按认证状态分页查询用户
+    public List<User> findByAuthStatus(Integer isAuth, int page, int size) {
+        int offset = (page - 1) * size;
+        String sql = "SELECT * FROM user WHERE is_auth = ? ORDER BY create_time DESC LIMIT ? OFFSET ?";
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(User.class), isAuth, size, offset);
+    }
 }

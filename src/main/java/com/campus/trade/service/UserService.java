@@ -18,6 +18,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpSession;
 
+import java.util.List;
+
 @Service
 public class UserService {
 
@@ -139,5 +141,52 @@ public class UserService {
 
         // 认证通过，更新用户表的认证状态和真实姓名
         userRepository.updateVerify(userId, req.getStudentId(), req.getRealName(), 1); // 1 代表已认证
+    }
+
+    // 冻结账号
+    public void freezeUser(Long userId) {
+        User user = userRepository.findById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        if (user.getStatus() == 0) {
+            throw new BusinessException("账号已处于冻结状态");
+        }
+        userRepository.updateStatus(userId, 0);
+    }
+
+    // 解冻账号
+    public void unfreezeUser(Long userId) {
+        User user = userRepository.findById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        if (user.getStatus() == 1) {
+            throw new BusinessException("账号未被冻结，无需解冻");
+        }
+        userRepository.updateStatus(userId, 1);
+    }
+
+    // 重置密码
+    public void resetUserPassword(Long userId, String newPassword) {
+        if (newPassword == null || newPassword.trim().isEmpty()) {
+            throw new BusinessException("新密码不能为空");
+        }
+        User user = userRepository.findById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        String encoded = PasswordUtil.encode(newPassword.trim());
+        userRepository.updatePassword(userId, encoded);
+    }
+
+    // 全部用户列表
+    public List<User> listUsers(int page, int size) {
+        return userRepository.findAll(page, size);
+    }
+
+    // 待认证用户列表
+    public List<User> listPendingAuthUsers(int page, int size) {
+        return userRepository.findByAuthStatus(0, page, size);
     }
 }
