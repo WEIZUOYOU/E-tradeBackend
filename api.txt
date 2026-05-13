@@ -1,0 +1,566 @@
+================================================================================
+ 校园二手交易平台 — API 接口文档
+ 版本: 1.0 | 基准路径: http://localhost:8080
+ 更新日期: 2026-05-13
+================================================================================
+
+【统一响应格式】
+所有接口返回 JSON，结构如下：
+{
+  "code": 200,          // 状态码，200表示成功
+  "msg": "成功",         // 提示信息
+  "data": <T>,          // 业务数据（类型视接口而定）
+  "timestamp": 1715600000000  // 响应时间戳
+}
+
+----------------------------------------------------------------------
+一、用户模块 — /api/user
+----------------------------------------------------------------------
+
+1. 用户注册
+   POST /api/user/register
+   认证: 无需登录
+   请求体 (JSON):
+   {
+     "studentId": "2307010301",  // 学号，10-20位，必填
+     "username":   "张三",        // 用户名，2-20位，必填
+     "password":   "123456",     // 密码，6-20位，必填
+     "phone":      "13800138000" // 手机号，11位，必填
+   }
+   返回: { "code": 200, "msg": "成功", "data": <用户ID> }
+   说明: 注册后自动初始化信用档案(100分)，状态为"正常"，认证状态为"未认证"
+
+2. 用户登录
+   POST /api/user/login
+   认证: 无需登录
+   请求体 (JSON):
+   {
+     "phone":    "13800138000", // 手机号，必填
+     "password": "123456"       // 密码，必填
+   }
+   返回: { "code": 200, "msg": "成功", "data": {<User对象>} }
+   说明: 支持手机号登录。登录成功后将 userId 和 user 对象存入 Session。
+         账号状态为0(冻结)时拒绝登录，提示"账号已被冻结"
+
+3. 退出登录
+   POST /api/user/logout
+   认证: 无需登录（Session存在时执行注销）
+   请求体: 无
+   返回: { "code": 200, "msg": "成功", "data": null }
+   说明: 销毁当前 Session
+
+4. 获取当前用户
+   GET /api/user/current
+   认证: 无需登录（未登录返回401）
+   请求参数: 无
+   返回: { "code": 200, "msg": "成功", "data": {<User对象>} }
+   说明: 从 Session 中获取当前登录用户信息
+
+5. 实名认证
+   POST /api/user/verify
+   认证: 需登录
+   请求体 (JSON):
+   {
+     "studentId": "2307010301", // 学号，必填
+     "realName":  "张三"        // 真实姓名，必填
+   }
+   返回: { "code": 200, "msg": "成功", "data": null }
+   说明: 将学号和姓名与学校预置库(school_user表)比对，匹配成功则更新用户的
+         is_auth=1、real_name、student_id。失败返回错误提示
+
+6. 修改个人资料
+   PUT /api/user/profile
+   认证: 需登录
+   请求体 (JSON):
+   {
+     "username": "新昵称"  // 2-20位，必填
+   }
+   返回: { "code": 200, "msg": "成功", "data": null }
+   说明: 更新用户名并同步到 Session
+
+7. 上传头像
+   POST /api/user/avatar
+   认证: 需登录
+   请求方式: multipart/form-data
+   参数: file (图片文件)
+   返回: { "code": 200, "msg": "成功", "data": "头像URL字符串" }
+   说明: 上传头像图片到服务器 uploads 目录，更新用户 avatar 字段
+
+8. 冻结账号 [管理]
+   PUT /api/user/freeze/{id}
+   认证: 需登录
+   路径参数: id — 要冻结的用户ID
+   请求体: 无
+   返回: { "code": 200, "msg": "成功", "data": null }
+   说明: 将目标用户 status 设为 0(禁用)。已冻结的账号再次调用会报错。
+         冻结后该用户无法登录
+
+9. 解冻账号 [管理]
+   PUT /api/user/unfreeze/{id}
+   认证: 需登录
+   路径参数: id — 要解冻的用户ID
+   请求体: 无
+   返回: { "code": 200, "msg": "成功", "data": null }
+   说明: 将目标用户 status 设为 1(正常)。未被冻结的账号调用会报错
+
+10. 重置密码 [管理]
+    PUT /api/user/reset-password/{id}
+    认证: 需登录
+    路径参数: id — 目标用户ID
+    请求体 (JSON):
+    {
+      "password": "新密码"  // 必填，不可为空
+    }
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 通过 BCrypt 加密新密码后更新。不会校验旧密码
+
+11. 全部用户列表 [管理]
+    GET /api/user/list?page=1&size=10
+    认证: 需登录
+    查询参数: page(默认1), size(默认10)
+    返回: { "code": 200, "msg": "成功", "data": [<User列表>] }
+    说明: 分页返回全部用户，按创建时间倒序
+
+12. 待认证用户列表 [管理]
+    GET /api/user/auth-pending?page=1&size=10
+    认证: 需登录
+    查询参数: page(默认1), size(默认10)
+    返回: { "code": 200, "msg": "成功", "data": [<User列表>] }
+    说明: 返回 is_auth=0(未实名认证)的用户列表，按创建时间倒序
+
+User对象结构:
+{
+  "id":          1,                    // 用户ID (Long)
+  "studentId":   "2307010301",        // 学号
+  "username":    "张三",               // 用户名
+  "password":    "<加密密文>",          // BCrypt加密，JSON中会返回
+  "phone":       "13800138000",       // 手机号
+  "avatar":      "头像URL",            // 头像
+  "status":      1,                   // 0-禁用/冻结, 1-正常
+  "isAuth":      1,                   // 0-未认证, 1-已认证
+  "creditScore": 100,                 // 信用分
+  "realName":    "张三",              // 真实姓名(认证后才有)
+  "createTime":  "2024-01-01T...",   // 注册时间
+  "updateTime":  "2024-01-01T..."    // 最后更新时间
+}
+
+----------------------------------------------------------------------
+二、商品模块 — /api/product
+----------------------------------------------------------------------
+
+13. 发布商品
+    POST /api/product/publish
+    认证: 需登录
+    请求方式: multipart/form-data（含文件上传，不能用JSON）
+    参数:
+      name       — 商品名称，必填，最长50字
+      price      — 价格，必填，必须>0
+      stock      — 库存，必填，至少1
+      description— 描述，选填，最长500字
+      categoryId — 分类ID，选填
+      images     — 图片文件列表，至少一张（MultipartFile[]）
+    返回: { "code": 200, "msg": "成功", "data": <商品ID> }
+    说明: 发布后商品 status=0(待审核)，需管理员审核通过后才在列表展示
+
+14. 商品列表
+    GET /api/product/list?page=1&size=10
+    认证: 无需登录
+    查询参数: page(默认1), size(默认10)
+    返回: { "code": 200, "msg": "成功", "data": [<Product列表>] }
+    说明: 仅返回 status=1(在售)的商品，按创建时间倒序
+
+15. 商品详情
+    GET /api/product/detail/{id}
+    认证: 无需登录
+    路径参数: id — 商品ID
+    返回: { "code": 200, "msg": "成功", "data": {<Product对象>} }
+    说明: 每次访问会自动增加浏览量(view_count+1)
+
+16. 下架商品
+    PUT /api/product/offline/{id}
+    认证: 需登录(仅卖家本人可操作)
+    路径参数: id — 商品ID
+    请求体: 无
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 将商品 status 置为 2(已下架)
+
+17. 我的商品
+    GET /api/product/my
+    认证: 需登录
+    请求参数: 无
+    返回: { "code": 200, "msg": "成功", "data": [<Product列表>] }
+    说明: 查询当前登录用户发布的所有商品
+
+18. 更新商品
+    POST /api/product/update/{id}
+    认证: 需登录(仅卖家本人)
+    路径参数: id — 商品ID
+    请求方式: multipart/form-data（参数同发布商品）
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 更新后商品 status 重新置为 0(待审核)
+
+19. 搜索商品
+    GET /api/product/search?keyword=手机&categoryId=1&page=1&size=10
+    认证: 无需登录
+    查询参数:
+      keyword    — 搜索关键词，选填（模糊匹配商品名称）
+      categoryId — 分类ID，选填
+      page       — 页码，默认1
+      size       — 每页条数，默认10
+    返回: { "code": 200, "msg": "成功", "data": [<Product列表>] }
+    说明: 仅搜索 status=1(在售)的商品
+
+20. 删除商品
+    DELETE /api/product/delete/{id}
+    认证: 需登录(仅卖家本人)
+    路径参数: id — 商品ID
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 物理删除商品记录
+
+21. 待审核商品列表 [审核管理]
+    GET /api/product/pending?page=1&size=10
+    认证: 需登录
+    查询参数: page(默认1), size(默认10)
+    返回: { "code": 200, "msg": "成功", "data": [<Product列表>] }
+    说明: 返回 status=0(待审核)的商品，按创建时间正序（最早提交的在前）
+
+22. 审核通过 [审核管理]
+    PUT /api/product/approve/{id}
+    认证: 需登录
+    路径参数: id — 商品ID
+    请求体: 无
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 将商品 status 从 0→1(在售)，记录 reviewerId 和 reviewedTime。
+         只有 status=0 的商品才能操作，否则报错
+
+23. 审核驳回 [审核管理]
+    PUT /api/product/reject/{id}
+    认证: 需登录
+    路径参数: id — 商品ID
+    请求体 (JSON):
+    {
+      "reason": "图片不符合规范"  // 驳回原因，必填，不可为空
+    }
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 将商品 status 从 0→4(审核不通过)，记录驳回原因、审核人和时间
+
+Product对象结构:
+{
+  "id":           1,                 // 商品ID
+  "sellerId":     1,                 // 卖家用户ID
+  "categoryId":   2,                 // 分类ID
+  "name":         "二手手机",         // 商品名称
+  "price":        999.00,            // 价格
+  "stock":        5,                 // 库存
+  "description":  "九成新...",        // 描述
+  "images":       ["url1","url2"],   // 图片URL列表（前端可直接用）
+  "status":       1,                 // 0-待审核 1-在售 2-已下架 3-已售出 4-审核不通过
+  "reviewReason": "图片不符合规范",    // 驳回原因（仅status=4时有值）
+  "reviewerId":   2,                 // 审核人ID
+  "reviewedTime": "2024-01-01T...",  // 审核时间
+  "viewCount":    120,               // 浏览量
+  "coverImage":   "封面图URL",        // 封面图片
+  "createTime":   "2024-01-01T..."   // 发布时间
+}
+
+----------------------------------------------------------------------
+三、订单模块 — /api/v1/trade/order
+----------------------------------------------------------------------
+
+24. 创建订单
+    POST /api/v1/trade/order
+    认证: 需登录
+    请求体 (JSON):
+    {
+      "productId":       1,            // 商品ID，必填
+      "quantity":        1,            // 数量，必填
+      "addressId":       1,            // 收货地址ID（线上交易时必填）
+      "tradeType":       0,            // 0-线上/快递, 1-线下交易，必填
+      "payType":         1,            // 支付方式
+      "meetingTime":     "2024-01-01 12:00:00",  // 线下交易约定时间
+      "meetingLocation": "图书馆一楼"   // 线下交易约定地点
+    }
+    返回: { "code": 200, "msg": "成功", "data": {"orderId": "1", "orderNo": "xxx"} }
+    说明: 创建订单后自动扣减库存。不可购买自己的商品。信用分过低时拒绝交易
+
+25. 订单详情
+    GET /api/v1/trade/order/{id}
+    认证: 需登录
+    路径参数: id — 订单ID
+    返回: { "code": 200, "msg": "成功", "data": {<OrderDetailResponse对象>} }
+    说明: 仅买家和卖家可查看
+
+26. 取消订单
+    PUT /api/v1/trade/order/{id}/cancel
+    认证: 需登录（仅买家可操作）
+    路径参数: id — 订单ID
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 订单状态→4(已取消)，恢复库存
+
+27. 买家订单列表
+    GET /api/v1/trade/order/buyer/list?status=1
+    认证: 需登录
+    查询参数: status — 订单状态，选填（不传则查全部）
+    返回: { "code": 200, "msg": "成功", "data": [<OrderDetailResponse列表>] }
+
+28. 卖家订单列表
+    GET /api/v1/trade/order/seller/list?status=1
+    认证: 需登录
+    查询参数: status — 订单状态，选填
+    返回: { "code": 200, "msg": "成功", "data": [<OrderDetailResponse列表>] }
+
+29. 确认订单/付款
+    PUT /api/v1/trade/order/{id}/confirm
+    认证: 需登录（仅买家）
+    路径参数: id — 订单ID
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 订单状态→1(已支付/交易中)
+
+30. 发货/交付
+    PUT /api/v1/trade/order/{id}/deliver
+    认证: 需登录（仅卖家）
+    路径参数: id — 订单ID
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 订单状态→2(已发货/已交付)
+
+31. 确认收货
+    PUT /api/v1/trade/order/{id}/receive
+    认证: 需登录（仅买家）
+    路径参数: id — 订单ID
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 订单状态→3(已完成)
+
+订单状态流转:
+  待付款(0) → [买家付款/confirm] → 待发货(1) → [卖家发货/deliver] → 待收货(2) → [买家收货/receive] → 已完成(3)
+  任意非终态 → [买家取消/cancel] → 已取消(4)
+
+OrderDetailResponse对象结构:
+{
+  "id":                 1,         // 订单ID
+  "orderNo":            "xxx",     // 订单编号
+  "status":             1,         // 0-待付款 1-待发货 2-待收货 3-已完成 4-已取消
+  "quantity":           1,         // 数量
+  "totalAmount":        999.00,    // 总金额
+  "createTime":         "...",     // 创建时间
+  "payTime":            "...",     // 付款时间
+  "completeTime":       "...",     // 完成时间
+  "productId":          1,         // 商品ID
+  "productName":        "手机",    // 商品名称
+  "productPriceAtOrder": 999.00,   // 下单时单价
+  "productImage":       "url",     // 商品图片
+  "sellerId":           2,         // 卖家ID
+  "sellerName":         "李四",    // 卖家名称
+  "sellerAvatar":       "url",     // 卖家头像
+  "buyerId":            1,         // 买家ID
+  "buyerName":          "张三",    // 买家名称
+  "buyerAvatar":        "url",     // 买家头像
+  "receiverName":       "张三",    // 收货人
+  "receiverPhone":      "138...",  // 收货电话
+  "receiverAddress":    "地址"     // 收货地址
+}
+
+----------------------------------------------------------------------
+四、分类模块 — /api/category
+----------------------------------------------------------------------
+
+32. 分类列表
+    GET /api/category/list
+    认证: 无需登录
+    请求参数: 无
+    返回: { "code": 200, "msg": "成功", "data": [<Category列表>] }
+    说明: 返回全部启用的分类
+
+Category对象结构:
+{
+  "id":          1,           // 分类ID
+  "name":        "电子产品",   // 分类名称
+  "description": "手机电脑等", // 分类描述
+  "icon":        "图标URL",   // 分类图标
+  "parentId":    0,           // 父分类ID（0=一级分类）
+  "sortOrder":   1,           // 排序权重
+  "status":      1,           // 0-禁用 1-正常
+  "createTime":  "..."        // 创建时间
+}
+
+----------------------------------------------------------------------
+五、消息模块 — /api/message
+----------------------------------------------------------------------
+
+33. 发送消息
+    POST /api/message/send
+    认证: 需登录
+    请求体 (JSON):
+    {
+      "receiverId": 2,          // 接收者用户ID，必填
+      "productId":  1,          // 关联商品ID，选填
+      "content":    "你好，我想买", // 消息内容，必填
+      "type":       0           // 0-文字消息, 1-图片URL，必填
+    }
+    返回: { "code": 200, "msg": "成功", "data": null }
+
+34. 聊天记录
+    GET /api/message/history?targetUserId=2
+    认证: 需登录
+    查询参数: targetUserId — 对方用户ID，必填
+    返回: { "code": 200, "msg": "成功", "data": [<Message列表>] }
+    说明: 返回当前用户与 targetUserId 之间的双向消息记录
+
+Message对象结构:
+{
+  "id":         1,            // 消息ID
+  "senderId":   1,            // 发送者ID
+  "receiverId": 2,            // 接收者ID
+  "productId":  1,            // 关联商品ID
+  "content":    "你好...",     // 消息内容
+  "type":       0,            // 0-文字, 1-图片URL
+  "isRead":     0,            // 0-未读, 1-已读
+  "createTime": "..."         // 发送时间
+}
+
+----------------------------------------------------------------------
+六、举报模块 — /api/v1/trade/report
+----------------------------------------------------------------------
+
+35. 提交举报
+    POST /api/v1/trade/report
+    认证: 需登录
+    请求体 (JSON):
+    {
+      "productId": 1,                     // 被举报商品ID，必填
+      "reason":    "该商品为假冒伪劣产品"   // 举报理由，5-255字，必填
+    }
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 不能举报自己的商品，不能重复举报同一商品
+
+36. 举报列表 [管理]
+    GET /api/v1/trade/report/list?status=0&page=1&size=10
+    认证: 需登录
+    查询参数:
+      status — 举报状态，选填（0-未处理, 1-已处理, 2-已驳回；不传查全部）
+      page   — 页码，默认1
+      size   — 每页条数，默认10
+    返回: { "code": 200, "msg": "成功", "data": [<ReportResponse列表>] }
+    说明: 联表查询，同时返回商品名称和举报人名称
+
+37. 处理举报（下架+封号+通知） [管理]
+    PUT /api/v1/trade/report/{id}/handle
+    认证: 需登录
+    路径参数: id — 举报ID
+    请求体: 无
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 自动执行以下操作:
+         1. 下架被举报商品(status→2)
+         2. 冻结卖家账号(status→0)
+         3. 记录处理人和处理结果
+         4. 发送通知给卖家(商品被举报下架)
+         5. 发送通知给举报人(举报已处理)
+         举报已处理的无法再次操作
+
+38. 驳回举报 [管理]
+    PUT /api/v1/trade/report/{id}/dismiss
+    认证: 需登录
+    路径参数: id — 举报ID
+    请求体: 无
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 将举报状态置为已驳回，并通知举报人"举报不构成违规"
+
+ReportResponse对象结构:
+{
+  "id":           1,                  // 举报ID
+  "productId":    1,                  // 被举报商品ID
+  "productName":  "假冒手机",          // 商品名称（联表查询）
+  "reporterId":   2,                  // 举报人ID
+  "reporterName": "张三",             // 举报人名称（联表查询）
+  "reason":       "该商品为假冒伪劣",   // 举报理由
+  "status":       0,                  // 0-未处理, 1-已处理, 2-已驳回
+  "createTime":   "2024-01-01T..."   // 举报时间
+}
+
+----------------------------------------------------------------------
+七、通知模块 — /api/notification
+----------------------------------------------------------------------
+
+39. 通知列表
+    GET /api/notification/list?page=1&size=20
+    认证: 需登录
+    查询参数: page(默认1), size(默认20)
+    返回: { "code": 200, "msg": "成功", "data": [<Notification列表>] }
+    说明: 返回当前用户的系统通知，按时间倒序
+
+40. 未读通知数
+    GET /api/notification/unread-count
+    认证: 需登录
+    请求参数: 无
+    返回: { "code": 200, "msg": "成功", "data": {"count": 3} }
+    说明: 返回当前用户未读通知数量，用于前端"小红点"展示
+
+41. 标记已读
+    PUT /api/notification/{id}/read
+    认证: 需登录
+    路径参数: id — 通知ID
+    请求体: 无
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 单条通知标记已读，仅可操作自己的通知
+
+42. 全部已读
+    PUT /api/notification/read-all
+    认证: 需登录
+    请求体: 无
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 将当前用户所有未读通知标记为已读
+
+Notification对象结构:
+{
+  "id":         1,                  // 通知ID
+  "userId":     1,                  // 接收者用户ID
+  "type":       1,                  // 0-系统通知, 1-举报处理结果, 2-审核结果
+  "title":      "举报已处理",        // 通知标题
+  "content":    "您举报的商品...",    // 通知内容
+  "relatedId":  1,                  // 关联业务ID（商品/举报ID）
+  "isRead":     0,                  // 0-未读, 1-已读
+  "createTime": "2024-01-01T..."   // 通知时间
+}
+
+说明: 微信模板消息推送已预留骨架(WeChatNotifyUtil)，配置微信AppId/AppSecret
+      后即可在 createAndSend 时同步推送微信消息。
+
+================================================================================
+附录: 错误码汇总
+================================================================================
+
+通用:
+  200  操作成功
+  400  请求参数错误
+  401  登录已失效，请重新登录
+  403  没有操作权限
+  404  请求的资源不存在
+  500  服务器开小差了，请稍后再试
+
+用户相关 (1000-1999):
+  1001  用户不存在
+  1002  学号或密码错误
+  1003  您已完成实名认证，无需重复申请
+  1004  请先完成实名认证再进行交易
+  1005  校园库中未查找到该学号信息
+  1006  账号已被冻结
+  1007  账号未被冻结，无需解冻
+  1008  新密码不能为空
+
+商品相关 (2000-2999):
+  2001  商品已下架或已售罄
+  2002  商品库存不足
+  2003  图片上传失败
+  2004  商品非待审核状态
+  2005  驳回时必须填写原因
+
+订单相关 (3000-3999):
+  3001  订单状态异常，无法操作
+  3002  无法购买自己发布的商品
+  3003  信用分过低，无法发起交易
+
+举报相关 (4000-4999):
+  4001  该举报已处理
+  4002  举报记录不存在
+
+业务通用:
+  5000  业务处理逻辑错误

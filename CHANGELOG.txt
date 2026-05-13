@@ -101,10 +101,107 @@ GET  /api/user/auth-pending         - 待认证用户列表(分页)
 mvn compile → BUILD SUCCESS (67 source files compiled, 0 errors)
 
 
-六、数据库迁移(如已有库)
+六、举报处理模块 + 消息通知模块 - 变更日志 (2026-05-13)
+============================================================
+
+一、举报处理新增接口
 -----------
-若数据库已存在，执行以下SQL添加新字段:
+GET  /api/v1/trade/report/list?status=&page=&size=  - 举报列表(分页+状态筛选)
+PUT  /api/v1/trade/report/{id}/handle               - 处理举报(下架商品+封号+通知)
+PUT  /api/v1/trade/report/{id}/dismiss               - 驳回举报(通知举报人)
+
+处理举报时自动执行:
+  1. 下架被举报商品(status→2)
+  2. 冻结卖家账号(status→0)
+  3. 向卖家发送通知(商品被举报下架)
+  4. 向举报人发送通知(举报已处理)
+
+二、消息通知模块接口
+-----------
+GET  /api/notification/list?page=&size=    - 当前用户通知列表
+GET  /api/notification/unread-count        - 未读通知数量
+PUT  /api/notification/{id}/read           - 标记单条已读
+PUT  /api/notification/read-all            - 全部标记已读
+
+通知类型:
+  0-系统通知   1-举报处理结果   2-审核结果
+
+微信模板消息:
+  WeChatNotifyUtil.java 已创建骨架，配置微信公众号AppId/AppSecret后即可启用真实推送
+
+三、文件变更明细
+-----------
+
+[新增] src/main/java/com/campus/trade/entity/Notification.java
+  通知实体: id, userId, type, title, content, relatedId, isRead, createTime
+
+[新增] src/main/java/com/campus/trade/repository/NotificationRepository.java
+  + insert(notification)            - 插入通知
+  + findByUserId(userId, page, size) - 分页查询用户通知
+  + getUnreadCount(userId)           - 未读数量
+  + markAsRead(id, userId)           - 标记单条已读
+  + markAllAsRead(userId)            - 全部已读
+
+[新增] src/main/java/com/campus/trade/service/NotificationService.java
+  + createAndSend(userId, type, title, content, relatedId) - 创建通知+微信推送
+  + listNotifications / getUnreadCount / markAsRead / markAllAsRead
+
+[新增] src/main/java/com/campus/trade/controller/NotificationController.java
+  通知模块4个端点（均需登录）
+
+[新增] src/main/java/com/campus/trade/utils/WeChatNotifyUtil.java
+  微信模板消息推送骨架，预留 sendTemplateMessage(openId, title, content) 方法
+
+[修改] src/main/java/com/campus/trade/common/ResultCode.java
+  + REPORT_ALREADY_HANDLED (4001) - 该举报已处理
+  + REPORT_NOT_FOUND      (4002) - 举报记录不存在
+
+[修改] src/main/java/com/campus/trade/repository/ReportRepository.java
+  + handleReport(id, status, handlerId, result) - 处理举报(记录处理人和结果)
+  + findById(id)       - 联表查询举报详情(含商品名/举报人名)
+  + findAll(page, size) / findByStatus(status, page, size) - 分页查询
+
+[修改] src/main/java/com/campus/trade/service/ReportService.java
+  + listReports(status, page, size)  - 举报列表
+  + handleReport(reportId, handlerId) - 处理举报(下架+封号+通知)
+  + dismissReport(reportId, handlerId) - 驳回举报(通知举报人)
+
+[修改] src/main/java/com/campus/trade/controller/ReportController.java
+  新增举报列表、处理、驳回3个管理端点
+
+[修改] docs/schema.sql
+  report表新增: handler_id, handle_result, handle_time 字段
+  新增 notification 表
+
+四、编译验证
+-----------
+mvn compile → BUILD SUCCESS (72 source files compiled, 0 errors)
+
+
+七、数据库迁移(如已有库)
+-----------
+-- 已有字段补充:
 ALTER TABLE product
   ADD COLUMN review_reason VARCHAR(500) COMMENT '审核驳回原因',
   ADD COLUMN reviewer_id INT COMMENT '审核人ID',
   ADD COLUMN reviewed_time DATETIME COMMENT '审核时间';
+
+-- 举报表新增字段:
+ALTER TABLE report
+  ADD COLUMN handler_id BIGINT COMMENT '处理人ID',
+  ADD COLUMN handle_result VARCHAR(255) COMMENT '处理结果说明',
+  ADD COLUMN handle_time DATETIME COMMENT '处理时间';
+
+-- 通知表:
+CREATE TABLE IF NOT EXISTS `notification` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` BIGINT NOT NULL,
+    `type` TINYINT DEFAULT 0 COMMENT '0-系统通知, 1-举报处理, 2-审核结果',
+    `title` VARCHAR(100) NOT NULL,
+    `content` TEXT,
+    `related_id` BIGINT,
+    `is_read` TINYINT DEFAULT 0,
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user_read (user_id, is_read),
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

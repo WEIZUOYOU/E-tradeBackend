@@ -36,7 +36,11 @@ public enum ResultCode {
     PRODUCT_NOT_PENDING(2004, "商品非待审核状态"),
     REVIEW_REASON_REQUIRED(2005, "驳回时必须填写原因"),
 
-    // --- 6. 业务通用错误 ---
+    // --- 6. 举报相关 (4000-4999) ---
+    REPORT_ALREADY_HANDLED(4001, "该举报已处理"),
+    REPORT_NOT_FOUND(4002, "举报记录不存在"),
+
+    // --- 7. 业务通用错误 ---
     BUSINESS_ERROR(5000, "业务处理逻辑错误");
 
     private final int code;

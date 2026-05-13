@@ -174,9 +174,25 @@ CREATE TABLE `report` (
     `reporter_id` BIGINT NOT NULL,
     `product_id` BIGINT NOT NULL,
     `reason` VARCHAR(255),
-    `status` TINYINT DEFAULT 0,
+    `status` TINYINT DEFAULT 0 COMMENT '0-未处理, 1-已处理, 2-已驳回',
+    `handler_id` BIGINT COMMENT '处理人ID',
+    `handle_result` VARCHAR(255) COMMENT '处理结果说明',
+    `handle_time` DATETIME COMMENT '处理时间',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (reporter_id) REFERENCES user(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `notification` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` BIGINT NOT NULL COMMENT '接收者ID',
+    `type` TINYINT DEFAULT 0 COMMENT '0-系统通知, 1-举报处理, 2-审核结果',
+    `title` VARCHAR(100) NOT NULL COMMENT '通知标题',
+    `content` TEXT COMMENT '通知内容',
+    `related_id` BIGINT COMMENT '关联业务ID',
+    `is_read` TINYINT DEFAULT 0 COMMENT '0-未读, 1-已读',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user_read (user_id, is_read),
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `school_user` (
