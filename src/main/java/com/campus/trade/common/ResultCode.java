@@ -29,7 +29,11 @@ public enum ResultCode {
     SELF_BUY_FORBIDDEN(3002, "无法购买自己发布的商品"),
     CREDIT_TOO_LOW(3003, "信用分过低，无法发起交易"),
 
-    // --- 5. 业务通用错误 ---
+    // --- 5. 商品审核相关 (2000-2999 扩展) ---
+    PRODUCT_NOT_PENDING(2004, "商品非待审核状态"),
+    REVIEW_REASON_REQUIRED(2005, "驳回时必须填写原因"),
+
+    // --- 6. 业务通用错误 ---
     BUSINESS_ERROR(5000, "业务处理逻辑错误");
 
     private final int code;

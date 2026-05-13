@@ -2,6 +2,7 @@ package com.campus.trade.controller;
 
 import com.campus.trade.common.Result;
 import com.campus.trade.dto.PublishProductRequest;
+import com.campus.trade.dto.ReviewProductRequest;
 import com.campus.trade.entity.Product;
 import com.campus.trade.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -103,6 +104,43 @@ public class ProductController {
             return Result.error(401, "请先登录");
         }
         productService.deleteProduct(id, userId);
+        return Result.success(null);
+    }
+
+    // 待审核商品列表
+    @GetMapping("/pending")
+    public Result<List<Product>> pendingProducts(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+        return Result.success(productService.listPendingProducts(page, size));
+    }
+
+    // 审核通过
+    @PutMapping("/approve/{id}")
+    public Result<Void> approve(@PathVariable Long id, HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+        productService.approveProduct(id, userId);
+        return Result.success(null);
+    }
+
+    // 审核驳回
+    @PutMapping("/reject/{id}")
+    public Result<Void> reject(@PathVariable Long id,
+            @RequestBody ReviewProductRequest req,
+            HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+        productService.rejectProduct(id, userId, req.getReason());
         return Result.success(null);
     }
 }

@@ -154,4 +154,42 @@ public class ProductService {
             throw new BusinessException("删除失败");
         }
     }
+
+    // 待审核商品列表
+    public List<Product> listPendingProducts(int page, int size) {
+        return productRepository.findByStatus(0, page, size);
+    }
+
+    // 审核通过
+    public void approveProduct(Long productId, Long reviewerId) {
+        Product product = productRepository.findById(productId);
+        if (product == null) {
+            throw new BusinessException("商品不存在");
+        }
+        if (product.getStatus() != 0) {
+            throw new BusinessException("商品非待审核状态");
+        }
+        int rows = productRepository.approveProduct(productId, reviewerId);
+        if (rows == 0) {
+            throw new BusinessException("审核操作失败，商品状态可能已变更");
+        }
+    }
+
+    // 审核驳回
+    public void rejectProduct(Long productId, Long reviewerId, String reason) {
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new BusinessException("驳回时必须填写原因");
+        }
+        Product product = productRepository.findById(productId);
+        if (product == null) {
+            throw new BusinessException("商品不存在");
+        }
+        if (product.getStatus() != 0) {
+            throw new BusinessException("商品非待审核状态");
+        }
+        int rows = productRepository.rejectProduct(productId, reviewerId, reason.trim());
+        if (rows == 0) {
+            throw new BusinessException("审核操作失败，商品状态可能已变更");
+        }
+    }
 }

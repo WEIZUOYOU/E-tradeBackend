@@ -110,4 +110,23 @@ public class ProductRepository {
         String sql = "DELETE FROM product WHERE id = ?";
         return jdbcTemplate.update(sql, productId);
     }
+
+    // 分页查询指定状态的商品（审核列表用）
+    public List<Product> findByStatus(Integer status, int page, int size) {
+        int offset = (page - 1) * size;
+        String sql = "SELECT * FROM product WHERE status = ? ORDER BY create_time ASC LIMIT ? OFFSET ?";
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Product.class), status, size, offset);
+    }
+
+    // 审核通过：status 0→1，记录审核人和时间
+    public int approveProduct(Long productId, Long reviewerId) {
+        String sql = "UPDATE product SET status = 1, reviewer_id = ?, reviewed_time = NOW() WHERE id = ? AND status = 0";
+        return jdbcTemplate.update(sql, reviewerId, productId);
+    }
+
+    // 审核驳回：status 0→4，记录驳回原因、审核人和时间
+    public int rejectProduct(Long productId, Long reviewerId, String reason) {
+        String sql = "UPDATE product SET status = 4, review_reason = ?, reviewer_id = ?, reviewed_time = NOW() WHERE id = ? AND status = 0";
+        return jdbcTemplate.update(sql, reason, reviewerId, productId);
+    }
 }

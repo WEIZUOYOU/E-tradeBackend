@@ -1,0 +1,84 @@
+E-tradeBackend-master/
+│
+├── .gitignore
+├── .spring-api-helper.json
+├── pom.xml
+├── README.md
+│
+├── docs/
+│   └── schema.sql
+│
+├── .vscode/
+│   └── settings.json
+│
+└── src/
+    └── main/
+        ├── java/
+        │   └── com/campus/trade/
+        │       ├── TradeApplication.java          (Spring Boot 入口)
+        │       │
+        │       ├── common/
+        │       │   ├── Result.java                (统一响应体)
+        │       │   ├── ResultCode.java            (响应状态码)
+        │       │   └── constants/
+        │       │       ├── OrderStatus.java       (订单状态枚举)
+        │       │       └── TradeType.java          (交易类型枚举)
+        │       │
+        │       ├── config/
+        │       │   └── WebConfig.java             (Web 配置 / CORS)
+        │       │
+        │       ├── controller/
+        │       │   ├── CategoryController.java
+        │       │   ├── MessageController.java
+        │       │   ├── OrderController.java
+        │       │   ├── ProductController.java
+        │       │   └── UserController.java
+        │       │
+        │       ├── dto/
+        │       │   ├── CreateOrderRequest.java
+        │       │   ├── LoginRequest.java
+        │       │   ├── OrderDetailResponse.java
+        │       │   ├── PublishProductRequest.java
+        │       │   ├── RegisterRequest.java
+        │       │   ├── SendMessageRequest.java
+        │       │   ├── VerifyRequest.java
+        │       │   ├── request/
+        │       │   │   └── CreateOrderRequest.java
+        │       │   └── response/
+        │       │       └── CategoryResponse.java
+        │       │
+        │       ├── entity/
+        │       │   ├── Category.java
+        │       │   ├── Message.java
+        │       │   ├── Order.java
+        │       │   ├── Product.java
+        │       │   └── User.java
+        │       │
+        │       ├── exception/
+        │       │   ├── BusinessException.java     (业务异常)
+        │       │   └── GlobalExceptionHandler.java(全局异常处理)
+        │       │
+        │       ├── interceptor/
+        │       │   └── LoginInterceptor.java      (登录拦截器)
+        │       │
+        │       ├── repository/
+        │       │   ├── CategoryRepository.java
+        │       │   ├── MessageRepository.java
+        │       │   ├── OrderRepository.java
+        │       │   ├── ProductRepository.java
+        │       │   ├── SchoolUserRepository.java
+        │       │   └── UserRepository.java
+        │       │
+        │       ├── service/
+        │       │   ├── CategoryService.java
+        │       │   ├── MessageService.java
+        │       │   ├── OrderService.java
+        │       │   ├── ProductService.java
+        │       │   └── UserService.java
+        │       │
+        │       └── utils/
+        │           ├── FileUploadUtils.java       (文件上传)
+        │           └── PasswordUtil.java           (密码加密)
+        │
+        └── resources/
+            └── application.yml                    (Spring Boot 配置)

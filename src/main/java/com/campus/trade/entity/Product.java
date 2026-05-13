@@ -14,8 +14,11 @@ public class Product {
     private Integer stock;
     private String description;
     private String imageUrls; // 多个图片用逗号分隔，也可存JSON，简单起见用字符串
-    private Integer status; // 0-待审核 1-在售 2-已下架 3-已售出
+    private Integer status; // 0-待审核 1-在售 2-已下架 3-已售出 4-审核不通过
+    private String reviewReason; // 审核驳回原因
+    private Long reviewerId; // 审核人ID
+    private LocalDateTime reviewedTime; // 审核时间
     private Integer viewCount;
     private LocalDateTime createTime;
-    private String coverImage; 
+    private String coverImage;
 }

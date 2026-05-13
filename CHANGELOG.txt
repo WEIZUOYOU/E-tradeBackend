@@ -1,0 +1,66 @@
+============================================================
+ 商品审核功能 - 变更日志 (CHANGELOG)
+ 日期: 2026-05-13
+============================================================
+
+一、需求背景
+-----------
+原有商品状态已定义 "0-待审核"，但缺少完整的审核流程：
+- 无审核列表接口（管理员无法查看待审核商品）
+- 无审核通过/驳回接口
+- 无驳回原因字段
+- 无审核人、审核时间记录
+
+二、新增状态值
+-----------
+商品 status 新增: 4 = 审核不通过
+完整状态: 0-待审核, 1-在售, 2-已下架, 3-已售出, 4-审核不通过
+
+三、文件变更明细
+-----------
+
+[修改] src/main/java/com/campus/trade/entity/Product.java
+  + reviewReason  (String)  - 审核驳回原因
+  + reviewerId   (Long)    - 审核人ID
+  + reviewedTime (LocalDateTime) - 审核时间
+
+[新增] src/main/java/com/campus/trade/dto/ReviewProductRequest.java
+  审核请求DTO，包含 reason 字段（驳回时填写原因）
+
+[修改] src/main/java/com/campus/trade/common/ResultCode.java
+  + PRODUCT_NOT_PENDING  (2004) - 商品非待审核状态
+  + REVIEW_REASON_REQUIRED (2005) - 驳回时必须填写原因
+
+[修改] src/main/java/com/campus/trade/repository/ProductRepository.java
+  + findByStatus(status, page, size)   - 按状态分页查询
+  + approveProduct(productId, reviewerId) - 审核通过(status 0→1)
+  + rejectProduct(productId, reviewerId, reason) - 审核驳回(status 0→4)
+
+[修改] src/main/java/com/campus/trade/service/ProductService.java
+  + listPendingProducts(page, size)    - 待审核商品列表
+  + approveProduct(productId, reviewerId) - 审核通过逻辑(含状态校验)
+  + rejectProduct(productId, reviewerId, reason) - 审核驳回逻辑(含原因校验)
+
+[修改] src/main/java/com/campus/trade/controller/ProductController.java
+  + GET  /api/product/pending          - 获取待审核列表(需登录)
+  + PUT  /api/product/approve/{id}     - 审核通过(需登录)
+  + PUT  /api/product/reject/{id}      - 审核驳回(需登录，body携带reason)
+
+[修改] docs/schema.sql
+  product表新增字段:
+  + review_reason VARCHAR(500)  - 审核驳回原因
+  + reviewer_id  INT            - 审核人ID
+  + reviewed_time DATETIME       - 审核时间
+  同时将 status 注释更新为与代码一致的五种状态
+
+四、编译验证
+-----------
+mvn compile → BUILD SUCCESS (42 source files compiled, 0 errors)
+
+五、数据库迁移(如已有库)
+-----------
+若数据库已存在，执行以下SQL添加新字段:
+ALTER TABLE product
+  ADD COLUMN review_reason VARCHAR(500) COMMENT '审核驳回原因',
+  ADD COLUMN reviewer_id INT COMMENT '审核人ID',
+  ADD COLUMN reviewed_time DATETIME COMMENT '审核时间';
