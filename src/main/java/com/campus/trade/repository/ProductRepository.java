@@ -31,7 +31,7 @@ public class ProductRepository {
     }
 
     public Long insert(Product product) {
-        String sql = "INSERT INTO product(seller_id, category_id, name, price, stock, description, image_urls, status, view_count, create_time) "
+        String sql = "INSERT INTO product(seller_id, category_id, name, price, stock, description, images, status, view_count, create_time) "
                 +
                 "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -74,7 +74,7 @@ public class ProductRepository {
 
     // 更新商品信息
     public int updateProduct(Product product) {
-        String sql = "UPDATE product SET name=?, category_id=?, price=?, stock=?, description=?, image_urls=?, status=? WHERE id=? AND seller_id=?";
+        String sql = "UPDATE product SET name=?, category_id=?, price=?, stock=?, description=?, images=?, status=? WHERE id=? AND seller_id=?";
         return jdbcTemplate.update(sql,
                 product.getName(),
                 product.getCategoryId(),

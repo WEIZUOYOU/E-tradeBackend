@@ -35,7 +35,7 @@ CREATE TABLE `category` (
 
 -- 4. 核心表：商品表
 CREATE TABLE `product` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `name` VARCHAR(100) NOT NULL COMMENT '商品名称',
     `description` TEXT COMMENT '商品描述',
     `price` DECIMAL(10,2) NOT NULL COMMENT '价格',
@@ -44,7 +44,7 @@ CREATE TABLE `product` (
     `sold_count` INT DEFAULT 0 COMMENT '已售数量',
     `view_count` INT DEFAULT 0 COMMENT '浏览数量',
     `category_id` INT NOT NULL COMMENT '分类ID',
-    `seller_id` INT NOT NULL COMMENT '卖家ID',
+    `seller_id` BIGINT NOT NULL COMMENT '卖家ID',
     `cover_image` VARCHAR(500) COMMENT '封面图片',
     `images` TEXT COMMENT '图片列表JSON',
     `status` TINYINT DEFAULT 0 COMMENT '状态：0-待审核，1-在售，2-已下架，3-已售出，4-审核不通过',
@@ -60,8 +60,8 @@ CREATE TABLE `product` (
 
 -- 5. 交易表：地址表
 CREATE TABLE `address` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `user_id` INT NOT NULL,
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` BIGINT NOT NULL,
     `receiver_name` VARCHAR(50) NOT NULL,
     `receiver_phone` VARCHAR(20) NOT NULL,
     `province` VARCHAR(50),
@@ -99,9 +99,9 @@ CREATE TABLE `order` (
 
 -- 7. 互动表：购物车、收藏、消息、历史记录
 CREATE TABLE `cart` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `user_id` INT NOT NULL,
-    `product_id` INT NOT NULL,
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` BIGINT NOT NULL,
+    `product_id` BIGINT NOT NULL,
     `quantity` INT DEFAULT 1,
     `selected` TINYINT DEFAULT 1,
     UNIQUE KEY uk_user_product (user_id, product_id),
@@ -110,16 +110,17 @@ CREATE TABLE `cart` (
 
 CREATE TABLE `favorite` (
     `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `user_id` INT NOT NULL,
-    `product_id` INT NOT NULL,
+    `user_id` BIGINT NOT NULL,
+    `product_id` BIGINT NOT NULL,
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uk_user_product (user_id, product_id),
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `message` (
     `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `sender_id` INT NOT NULL,
-    `receiver_id` INT NOT NULL,
+    `sender_id` BIGINT NOT NULL,
+    `receiver_id` BIGINT NOT NULL,
     `content` TEXT NOT NULL,
     `is_read` TINYINT DEFAULT 0,
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -129,15 +130,15 @@ CREATE TABLE `message` (
 
 CREATE TABLE `browse_history` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `user_id` INT NOT NULL,
-    `product_id` INT NOT NULL,
+    `user_id` BIGINT NOT NULL,
+    `product_id` BIGINT NOT NULL,
     `browse_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 8. 管理表：信用、评价、实名、举报、学校库
 CREATE TABLE `user_credit` (
-    `user_id` INT PRIMARY KEY,
+    `user_id` BIGINT PRIMARY KEY,
     `credit_score` INT DEFAULT 100,
     `trade_count` INT DEFAULT 0,
     `good_review_rate` DECIMAL(5,2) DEFAULT 0.00,
@@ -146,17 +147,21 @@ CREATE TABLE `user_credit` (
 
 CREATE TABLE `order_review` (
     `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `order_id` INT NOT NULL,
-    `buyer_id` INT NOT NULL,
+    `order_id` BIGINT NOT NULL,
+    `reviewer_id` BIGINT NOT NULL,
+    `reviewee_id` BIGINT NOT NULL,
+    `review_type` TINYINT NOT NULL COMMENT '0-买家评价卖家, 1-卖家评价买家',
     `rating` TINYINT COMMENT '1-5星',
     `content` VARCHAR(500),
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (order_id) REFERENCES `order`(id) ON DELETE CASCADE
+    FOREIGN KEY (order_id) REFERENCES `order`(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewer_id) REFERENCES user(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewee_id) REFERENCES user(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `authentication` (
     `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `user_id` INT NOT NULL,
+    `user_id` BIGINT NOT NULL,
     `real_name` VARCHAR(50) NOT NULL,
     `student_id` VARCHAR(20) NOT NULL,
     `status` TINYINT DEFAULT 0 COMMENT '0-待审核, 1-通过, 2-拒绝',
@@ -166,8 +171,8 @@ CREATE TABLE `authentication` (
 
 CREATE TABLE `report` (
     `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `reporter_id` INT NOT NULL,
-    `product_id` INT NOT NULL,
+    `reporter_id` BIGINT NOT NULL,
+    `product_id` BIGINT NOT NULL,
     `reason` VARCHAR(255),
     `status` TINYINT DEFAULT 0,
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,

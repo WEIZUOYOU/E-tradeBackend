@@ -1,9 +1,9 @@
 package com.campus.trade.controller;
 
 import com.campus.trade.common.Result;
-import com.campus.trade.dto.LoginRequest;
-import com.campus.trade.dto.RegisterRequest;
-import com.campus.trade.dto.VerifyRequest;
+import com.campus.trade.dto.request.LoginRequest;
+import com.campus.trade.dto.request.RegisterRequest;
+import com.campus.trade.dto.request.VerifyRequest;
 import com.campus.trade.entity.User;
 import com.campus.trade.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +57,28 @@ public class UserController {
 
         userService.verify(userId, req);
         return Result.success(null);
+    }
+
+    @PutMapping("/profile")
+    public Result<Void> updateProfile(@Validated @RequestBody com.campus.trade.dto.request.UpdateProfileRequest req,
+            HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+        userService.updateProfile(userId, req, session);
+        return Result.success(null);
+    }
+
+    @PostMapping("/avatar")
+    public Result<String> uploadAvatar(@RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+        String avatarUrl = userService.uploadAvatar(userId, file, session);
+        return Result.success(avatarUrl);
     }
 
 }

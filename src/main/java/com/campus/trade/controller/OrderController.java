@@ -1,8 +1,8 @@
 package com.campus.trade.controller;
 
 import com.campus.trade.common.Result;
-import com.campus.trade.dto.CreateOrderRequest;
-import com.campus.trade.dto.OrderDetailResponse;
+import com.campus.trade.dto.request.CreateOrderRequest;
+import com.campus.trade.dto.response.OrderDetailResponse;
 import com.campus.trade.entity.Order;
 import com.campus.trade.exception.BusinessException;
 import com.campus.trade.service.OrderService;
@@ -28,13 +28,14 @@ public class OrderController {
 
     // 🌟 修复点1：创建订单 RESTful，直接对应 POST /api/v1/trade/order
     @PostMapping
-    public Result<Map<String, Object>> createOrder(@Validated @RequestBody CreateOrderRequest req, HttpSession session) {
+    public Result<Map<String, Object>> createOrder(@Validated @RequestBody CreateOrderRequest req,
+            HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
         Order order = orderService.createOrder(userId, req);
-        
+
         // 按照前端文档要求，创建订单返回 orderId 和 orderNo 等基础信息
         Map<String, Object> respData = new HashMap<>();
         respData.put("orderId", order.getId().toString()); // 前端要求 String
@@ -63,13 +64,15 @@ public class OrderController {
 
     // --- 列表查询保持原样即可 ---
     @GetMapping("/buyer/list")
-    public Result<List<OrderDetailResponse>> buyerList(@RequestParam(required = false) Integer status, HttpSession session) {
+    public Result<List<OrderDetailResponse>> buyerList(@RequestParam(required = false) Integer status,
+            HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
         return Result.success(orderService.getBuyerOrders(userId, status));
     }
 
     @GetMapping("/seller/list")
-    public Result<List<OrderDetailResponse>> sellerList(@RequestParam(required = false) Integer status, HttpSession session) {
+    public Result<List<OrderDetailResponse>> sellerList(@RequestParam(required = false) Integer status,
+            HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
         return Result.success(orderService.getSellerOrders(userId, status));
     }

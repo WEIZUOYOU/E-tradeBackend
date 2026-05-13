@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
 import java.util.Objects;
+import java.util.List;
 
 @Repository
 public class UserRepository {
@@ -47,8 +48,13 @@ public class UserRepository {
     }
 
     public void updateAvatar(Long userId, String avatarUrl) {
-        String sql = "UPDATE user SET avatar = ? WHERE id = ?";
+        String sql = "UPDATE user SET avatar = ?, update_time = NOW() WHERE id = ?";
         jdbcTemplate.update(sql, avatarUrl, userId);
+    }
+
+    public int updateUsername(Long userId, String username) {
+        String sql = "UPDATE user SET username = ?, update_time = NOW() WHERE id = ?";
+        return jdbcTemplate.update(sql, username, userId);
     }
 
     // 根据手机号查询
@@ -59,10 +65,16 @@ public class UserRepository {
     }
 
     // 更新实名认证信息
-// UserRepository.java
+    // UserRepository.java
     public void updateVerify(Long userId, String studentId, String realName, Integer status) {
         // 将 verify_status 改为 is_auth
         String sql = "UPDATE user SET student_id=?, real_name=?, is_auth=? WHERE id=?";
         jdbcTemplate.update(sql, studentId, realName, status, userId);
+    }
+
+    // 更新信用分
+    public void updateCreditScore(Long userId, int scoreChange) {
+        String sql = "UPDATE user SET credit_score = GREATEST(0, credit_score + ?) WHERE id = ?";
+        jdbcTemplate.update(sql, scoreChange, userId);
     }
 }

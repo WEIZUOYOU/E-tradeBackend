@@ -1,7 +1,7 @@
 package com.campus.trade.controller;
 
 import com.campus.trade.common.Result;
-import com.campus.trade.dto.SendMessageRequest;
+import com.campus.trade.dto.request.SendMessageRequest;
 import com.campus.trade.entity.Message;
 import com.campus.trade.service.MessageService;
 import jakarta.servlet.http.HttpSession;
