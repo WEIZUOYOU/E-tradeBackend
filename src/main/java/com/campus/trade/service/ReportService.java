@@ -7,6 +7,7 @@ import com.campus.trade.repository.ProductRepository;
 import com.campus.trade.repository.ReportRepository;
 import com.campus.trade.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -27,6 +28,9 @@ public class ReportService {
 
     @Autowired
     private NotificationService notificationService;
+
+    @Value("${app.adminIds:1}")
+    private String adminIds;
 
     // 提交举报
     @Transactional
@@ -49,6 +53,24 @@ public class ReportService {
         }
 
         reportRepository.insert(reporterId, productId, reason);
+
+        // 通知管理员
+        String title = "新举报待处理";
+        String content = "用户ID " + reporterId + " 对商品ID " + productId + " 提交了举报，请尽快处理。";
+        if (adminIds != null && !adminIds.isBlank()) {
+            for (String s : adminIds.split(",")) {
+                try {
+                    Long adminId = Long.parseLong(s.trim());
+                    notificationService.createAndSend(
+                            adminId,
+                            0, // 类型：系统通知（或按你需要改为其他类型）
+                            title,
+                            content,
+                            productId);
+                } catch (NumberFormatException ignore) {
+                }
+            }
+        }
     }
 
     // 举报列表

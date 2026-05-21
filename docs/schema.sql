@@ -6,7 +6,7 @@ USE E_tradeDB;
 -- 2. 基础表：用户表 (已包含 is_auth 字段)
 CREATE TABLE `user` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,  -- 推荐 BIGINT
-    `student_id` VARCHAR(20) UNIQUE NOT NULL COMMENT '学号',
+    `student_id` VARCHAR(20) UNIQUE NULL COMMENT '学号',
     `username` VARCHAR(50) NOT NULL COMMENT '用户名',
     `password` VARCHAR(255) NOT NULL COMMENT '密码',
     `phone` VARCHAR(20) COMMENT '手机号',

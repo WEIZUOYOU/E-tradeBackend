@@ -37,21 +37,16 @@ public class UserService {
 
     // 注册
     public Long register(RegisterRequest req) {
-        // 1. 检查手机号和学号是否已存在
+        // 1. 检查手机号是否已存在
         if (userRepository.findByPhone(req.getPhone()) != null) {
             throw new BusinessException("手机号已注册");
         }
-        if (userRepository.findByStudentId(req.getStudentId()) != null) {
-            throw new BusinessException("学号已注册");
-        }
 
         User user = new User();
-        user.setStudentId(req.getStudentId());
         user.setUsername(req.getUsername());
 
         // 2. 使用更安全的 BCrypt 加密
         user.setPassword(PasswordUtil.encode(req.getPassword()));
-
         user.setPhone(req.getPhone());
         user.setStatus(1); // 1-正常 (匹配之前的常量定义)
         user.setIsAuth(0); // 初始未认证
@@ -132,7 +127,12 @@ public class UserService {
 
     // 实名认证方法
     public void verify(Long userId, VerifyRequest req) {
-        // 4. 调用学校数据库比对
+        User existing = userRepository.findByStudentId(req.getStudentId());
+        if (existing != null && !existing.getId().equals(userId)) {
+            throw new BusinessException("该学号已被其他账号绑定");
+        }
+
+        // 校验学号与姓名是否匹配
         boolean exists = schoolUserRepository.exists(req.getStudentId(), req.getRealName());
 
         if (!exists) {

@@ -6,7 +6,7 @@ spring:
     # 补充了 characterEncoding 以防止中文存入数据库乱码
     url: jdbc:mysql://localhost:3306/E_tradeDB?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf-8&allowPublicKeyRetrieval=true
     username: root
-    password: 123123 # 确保这是你的数据库密码
+    password: 123456 # 确保这是你的数据库密码
     driver-class-name: com.mysql.cj.jdbc.Driver
     
   servlet:
@@ -19,3 +19,6 @@ file:
   # 建议使用外部相对路径。项目启动时，会在项目根目录下自动创建 uploads 文件夹
   # 这样打成 jar 包运行也能正常工作
   upload-dir: ./uploads/
+
+app:
+  adminIds: 1              # 管理员用户ID，多个用逗号分隔，例如 "1,2,3"

@@ -7,9 +7,6 @@ import jakarta.validation.constraints.Size;
 
 @Data
 public class RegisterRequest {
-    @NotBlank(message = "学号不能为空")
-    @Size(min = 10, max = 20, message = "学号长度应在10-20位之间")
-    private String studentId;
 
     @NotBlank(message = "用户名不能为空")
     @Size(min = 2, max = 20, message = "用户名长度2-20位")
