@@ -244,9 +244,9 @@ INSERT INTO school_user (student_id, real_name) VALUES
 
 -- 10. 插入测试用户数据
 INSERT INTO `user` (`id`, `username`, `password`, `phone`, `credit_score`, `status`, `is_auth`, `create_time`) VALUES
-(1, '快乐小卖家', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '13800138001', 100, 1, 0, '2026-01-15 10:30:00'),
-(2, '校园好物分享', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '13800138002', 100, 1, 0, '2026-01-16 14:20:00'),
-(3, 'wzy学姐', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '13800138003', 100, 1, 1, '2026-01-17 09:15:00');
+(1, '快乐小卖家', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', '13800138001', 100, 1, 0, '2026-01-15 10:30:00'),
+(2, '校园好物分享', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', '13800138002', 100, 1, 0, '2026-01-16 14:20:00'),
+(3, 'wzy学姐', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', '13800138003', 100, 1, 1, '2026-01-17 09:15:00');
 
 -- 11. 插入实名认证数据
 INSERT INTO `authentication` (`user_id`, `real_name`, `student_id`, `status`, `create_time`) VALUES
