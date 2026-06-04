@@ -1,7 +1,7 @@
 ================================================================================
  校园二手交易平台 — API 接口文档
  版本: 1.0 | 基准路径: http://localhost:8080
- 更新日期: 2026-05-13
+ 更新日期: 2026-06-04
 ================================================================================
 
 【统一响应格式】
@@ -157,7 +157,7 @@ User对象结构:
       price      — 价格，必填，必须>0
       stock      — 库存，必填，至少1
       description— 描述，选填，最长500字
-      categoryId — 分类ID，选填
+      categoryId — 分类ID，必填（1-7）
       images     — 图片文件列表，至少一张（MultipartFile[]）
     返回: { "code": 200, "msg": "成功", "data": <商品ID> }
     说明: 发布后商品 status=0(待审核)，需管理员审核通过后才在列表展示
@@ -252,6 +252,7 @@ Product对象结构:
   "name":         "二手手机",         // 商品名称
   "price":        999.00,            // 价格
   "stock":        5,                 // 库存
+  "soldCount":    0,                 // 已售数量
   "description":  "九成新...",        // 描述
   "images":       ["url1","url2"],   // 图片URL列表（前端可直接用）
   "status":       1,                 // 0-待审核 1-在售 2-已下架 3-已售出 4-审核不通过
@@ -259,6 +260,7 @@ Product对象结构:
   "reviewerId":   2,                 // 审核人ID
   "reviewedTime": "2024-01-01T...",  // 审核时间
   "viewCount":    120,               // 浏览量
+  "isRecommend":  0,                 // 0-否 1-推荐
   "coverImage":   "封面图URL",        // 封面图片
   "createTime":   "2024-01-01T..."   // 发布时间
 }
@@ -368,25 +370,30 @@ OrderDetailResponse对象结构:
     认证: 无需登录
     请求参数: 无
     返回: { "code": 200, "msg": "成功", "data": [<Category列表>] }
-    说明: 返回全部启用的分类
+    说明: 仅返回 is_active=1 的一级分类(parent_id IS NULL)，按 sort_order 升序
+
+33. 验证分类ID
+    GET /api/category/validate/{categoryId}
+    认证: 无需登录
+    路径参数: categoryId — 分类ID
+    返回: { "code": 200, "msg": "成功", "data": {"valid": true, "categoryName": "教材与学习资料"} }
+    说明: 检查分类ID是否存在且启用，用于发布商品前的验证
 
 Category对象结构:
 {
-  "id":          1,           // 分类ID
-  "name":        "电子产品",   // 分类名称
-  "description": "手机电脑等", // 分类描述
-  "icon":        "图标URL",   // 分类图标
-  "parentId":    0,           // 父分类ID（0=一级分类）
-  "sortOrder":   1,           // 排序权重
-  "status":      1,           // 0-禁用 1-正常
-  "createTime":  "..."        // 创建时间
+  "id":          1,                  // 分类ID
+  "name":        "教材与学习资料",     // 分类名称
+  "parentId":    null,               // 父分类ID（NULL=一级分类）
+  "sortOrder":   1,                  // 排序顺序
+  "isActive":    1,                  // 0-禁用 1-启用
+  "createTime":  "..."               // 创建时间
 }
 
 ----------------------------------------------------------------------
 五、消息模块 — /api/message
 ----------------------------------------------------------------------
 
-33. 发送消息
+34. 发送消息
     POST /api/message/send
     认证: 需登录
     请求体 (JSON):
@@ -398,7 +405,7 @@ Category对象结构:
     }
     返回: { "code": 200, "msg": "成功", "data": null }
 
-34. 聊天记录
+35. 聊天记录
     GET /api/message/history?targetUserId=2
     认证: 需登录
     查询参数: targetUserId — 对方用户ID，必填
@@ -421,7 +428,7 @@ Message对象结构:
 六、举报模块 — /api/v1/trade/report
 ----------------------------------------------------------------------
 
-35. 提交举报
+36. 提交举报
     POST /api/v1/trade/report
     认证: 需登录
     请求体 (JSON):
@@ -432,7 +439,7 @@ Message对象结构:
     返回: { "code": 200, "msg": "成功", "data": null }
     说明: 不能举报自己的商品，不能重复举报同一商品
 
-36. 举报列表 [管理]
+37. 举报列表 [管理]
     GET /api/v1/trade/report/list?status=0&page=1&size=10
     认证: 需登录
     查询参数:
@@ -442,7 +449,7 @@ Message对象结构:
     返回: { "code": 200, "msg": "成功", "data": [<ReportResponse列表>] }
     说明: 联表查询，同时返回商品名称和举报人名称
 
-37. 处理举报（下架+封号+通知） [管理]
+38. 处理举报（下架+封号+通知） [管理]
     PUT /api/v1/trade/report/{id}/handle
     认证: 需登录
     路径参数: id — 举报ID
@@ -456,7 +463,7 @@ Message对象结构:
          5. 发送通知给举报人(举报已处理)
          举报已处理的无法再次操作
 
-38. 驳回举报 [管理]
+39. 驳回举报 [管理]
     PUT /api/v1/trade/report/{id}/dismiss
     认证: 需登录
     路径参数: id — 举报ID
@@ -480,21 +487,21 @@ ReportResponse对象结构:
 七、通知模块 — /api/notification
 ----------------------------------------------------------------------
 
-39. 通知列表
+40. 通知列表
     GET /api/notification/list?page=1&size=20
     认证: 需登录
     查询参数: page(默认1), size(默认20)
     返回: { "code": 200, "msg": "成功", "data": [<Notification列表>] }
     说明: 返回当前用户的系统通知，按时间倒序
 
-40. 未读通知数
+41. 未读通知数
     GET /api/notification/unread-count
     认证: 需登录
     请求参数: 无
     返回: { "code": 200, "msg": "成功", "data": {"count": 3} }
     说明: 返回当前用户未读通知数量，用于前端"小红点"展示
 
-41. 标记已读
+42. 标记已读
     PUT /api/notification/{id}/read
     认证: 需登录
     路径参数: id — 通知ID
@@ -502,7 +509,7 @@ ReportResponse对象结构:
     返回: { "code": 200, "msg": "成功", "data": null }
     说明: 单条通知标记已读，仅可操作自己的通知
 
-42. 全部已读
+43. 全部已读
     PUT /api/notification/read-all
     认证: 需登录
     请求体: 无
@@ -552,6 +559,7 @@ Notification对象结构:
   2003  图片上传失败
   2004  商品非待审核状态
   2005  驳回时必须填写原因
+  2006  无效的商品分类
 
 订单相关 (3000-3999):
   3001  订单状态异常，无法操作

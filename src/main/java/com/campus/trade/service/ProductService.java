@@ -54,10 +54,13 @@ public class ProductService {
         product.setName(req.getName());
         product.setPrice(req.getPrice());
         product.setStock(req.getStock());
+        product.setSoldCount(0);
         product.setDescription(req.getDescription());
         product.setImages(savedPaths);
+        product.setCoverImage(savedPaths.get(0)); // 第一张图片作为封面
         product.setStatus(0);// 0-待审核
         product.setViewCount(0);
+        product.setIsRecommend(0);
 
         return productRepository.insert(product);
     }

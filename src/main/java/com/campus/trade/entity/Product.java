@@ -13,8 +13,9 @@ public class Product {
     private Long sellerId;
     private Integer categoryId; // 改为 Integer，与数据库 INT 一致
     private String name;
-    private BigDecimal price;
+    private BigDecimal price; // 当前售价
     private Integer stock;
+    private Integer soldCount; // 已售数量
     private String description;
 
     // 前端期望的字段：List<String>
@@ -29,6 +30,7 @@ public class Product {
     private Long reviewerId; // 审核人ID
     private LocalDateTime reviewedTime; // 审核时间
     private Integer viewCount;
+    private Integer isRecommend; // 是否推荐：0-否，1-是
     private LocalDateTime createTime;
     private String coverImage; // 封面图片
 

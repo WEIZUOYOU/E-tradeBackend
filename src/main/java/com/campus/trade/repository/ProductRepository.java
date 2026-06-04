@@ -31,9 +31,9 @@ public class ProductRepository {
     }
 
     public Long insert(Product product) {
-        String sql = "INSERT INTO product(seller_id, category_id, name, price, stock, description, images, status, view_count, create_time) "
+        String sql = "INSERT INTO product(seller_id, category_id, name, price, stock, sold_count, description, images, cover_image, status, view_count, is_recommend, create_time) "
                 +
-                "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, new String[] { "id" });
@@ -42,10 +42,13 @@ public class ProductRepository {
             ps.setString(3, product.getName());
             ps.setBigDecimal(4, product.getPrice());
             ps.setInt(5, product.getStock());
-            ps.setString(6, product.getDescription());
-            ps.setString(7, product.getImageUrls());
-            ps.setInt(8, product.getStatus() != null ? product.getStatus() : 0);
-            ps.setInt(9, product.getViewCount() != null ? product.getViewCount() : 0);
+            ps.setInt(6, product.getSoldCount() != null ? product.getSoldCount() : 0);
+            ps.setString(7, product.getDescription());
+            ps.setString(8, product.getImageUrls());
+            ps.setString(9, product.getCoverImage());
+            ps.setInt(10, product.getStatus() != null ? product.getStatus() : 0);
+            ps.setInt(11, product.getViewCount() != null ? product.getViewCount() : 0);
+            ps.setInt(12, product.getIsRecommend() != null ? product.getIsRecommend() : 0);
             return ps;
         }, keyHolder);
         return Objects.requireNonNull(keyHolder.getKey()).longValue();
