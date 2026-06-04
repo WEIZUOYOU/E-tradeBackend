@@ -128,6 +128,36 @@
     返回: { "code": 200, "msg": "成功", "data": [<User列表>] }
     说明: 返回 is_auth=0(未实名认证)的用户列表，按创建时间倒序
 
+13. 获取用户公开信息
+    GET /api/user/info/{userId}
+    认证: 无需登录
+    路径参数: userId — 用户ID
+    返回: { "code": 200, "msg": "成功", "data": {<UserInfoResponse对象>} }
+    说明: 获取用户公开信息，用于商品详情/聊天显示卖家信息
+
+14. 批量获取用户信息
+    POST /api/user/batch-info
+    认证: 无需登录
+    请求体 (JSON):
+    {
+      "userIds": [1, 2, 3]  // 用户ID列表
+    }
+    返回: { "code": 200, "msg": "成功", "data": [<UserInfoResponse列表>] }
+    说明: 批量获取用户信息，用于消息列表批量加载会话用户
+
+UserInfoResponse对象结构:
+{
+  "id":          1,                    // 用户ID (Long)
+  "username":    "张三",               // 用户名
+  "avatar":      "头像URL",            // 头像
+  "isAuth":      1,                   // 0-未认证, 1-已认证
+  "realName":    "张三",              // 真实姓名(认证后才有)
+  "studentId":   "2307010301",        // 学号(认证后才有)
+  "creditScore": 100,                 // 信用分
+  "status":      1,                   // 0-禁用/冻结, 1-正常
+  "createTime":  "2024-01-01T..."    // 注册时间
+}
+
 User对象结构:
 {
   "id":          1,                    // 用户ID (Long)
@@ -262,7 +292,11 @@ Product对象结构:
   "viewCount":    120,               // 浏览量
   "isRecommend":  0,                 // 0-否 1-推荐
   "coverImage":   "封面图URL",        // 封面图片
-  "createTime":   "2024-01-01T..."   // 发布时间
+  "createTime":   "2024-01-01T...",  // 发布时间
+  "sellerName":   "张三",            // 卖家名称（联表查询）
+  "sellerAvatar": "头像URL",          // 卖家头像（联表查询）
+  "sellerIsAuth": 1,                 // 卖家是否实名认证（联表查询）
+  "categoryName": "数码产品"          // 分类名称（联表查询）
 }
 
 ----------------------------------------------------------------------
@@ -410,7 +444,47 @@ Category对象结构:
     认证: 需登录
     查询参数: targetUserId — 对方用户ID，必填
     返回: { "code": 200, "msg": "成功", "data": [<Message列表>] }
-    说明: 返回当前用户与 targetUserId 之间的双向消息记录
+    说明: 返回当前用户与 targetUserId 之间的双向消息记录，自动标记未读消息为已读
+
+36. 会话列表
+    GET /api/message/sessions?page=1&size=20
+    认证: 需登录
+    查询参数: page(默认1), size(默认20)
+    返回: { "code": 200, "msg": "成功", "data": {"total": 5, "sessions": [<MessageSessionResponse列表>]} }
+    说明: 查询当前用户参与的所有对话，按最后消息时间倒序，每会话返回最新1条消息，统计未读数
+
+37. 未读消息统计
+    GET /api/message/unread-count
+    认证: 需登录
+    请求参数: 无
+    返回: { "code": 200, "msg": "成功", "data": {"totalCount": 10, "sessionCount": 3} }
+    说明: 返回当前用户未读消息总数和未读会话数，用于底部导航红点/应用角标
+
+38. 标记单条消息已读
+    PUT /api/message/read/{messageId}
+    认证: 需登录
+    路径参数: messageId — 消息ID
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 将指定消息标记为已读
+
+39. 批量标记会话已读
+    PUT /api/message/read-session/{targetUserId}
+    认证: 需登录
+    路径参数: targetUserId — 对方用户ID
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 将当前用户与指定用户的所有未读消息标记为已读
+
+MessageSessionResponse对象结构:
+{
+  "targetUserId":   2,              // 对方用户ID
+  "targetUserName": "李四",         // 对方用户名
+  "targetUserAvatar": "url",        // 对方头像
+  "lastMessage":    "你好...",      // 最后一条消息内容
+  "lastMessageTime": "...",         // 最后消息时间
+  "unreadCount":    3,              // 未读消息数
+  "productId":      1,              // 关联商品ID
+  "productName":    "二手手机"      // 关联商品名称
+}
 
 Message对象结构:
 {
@@ -674,6 +748,8 @@ ReviewHistoryResponse对象结构:
   1006  账号已被冻结
   1007  账号未被冻结，无需解冻
   1008  新密码不能为空
+  1009  用户不存在
+  1010  用户已冻结
 
 商品相关 (2000-2999):
   2001  商品已下架或已售罄
@@ -682,6 +758,11 @@ ReviewHistoryResponse对象结构:
   2004  商品非待审核状态
   2005  驳回时必须填写原因
   2006  无效的商品分类
+  2007  商品不存在
+  2008  无权操作
+  2009  格式不支持
+  2010  单图大小不能超过5MB
+  2011  图片数量不能超过9张
 
 订单相关 (3000-3999):
   3001  订单状态异常，无法操作
@@ -700,6 +781,12 @@ ReviewHistoryResponse对象结构:
   6001  订单未完成，无法评价
   6002  该订单已评价
   6003  不能评价自己
+
+消息相关 (7000-7999):
+  7001  不能给自己发消息
+  7002  消息内容为空
+  7003  消息内容长度不能超过500字符
+  7004  接收者不存在
 
 业务通用:
   9000  业务处理逻辑错误

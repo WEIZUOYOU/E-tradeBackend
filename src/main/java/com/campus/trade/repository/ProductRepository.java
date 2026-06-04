@@ -20,12 +20,29 @@ public class ProductRepository {
 
     public List<Product> findAll(int page, int size) {
         int offset = (page - 1) * size;
-        String sql = "SELECT * FROM product WHERE status = 1 ORDER BY create_time DESC LIMIT ? OFFSET ?";
+        String sql = "SELECT p.*, u.username AS seller_name, u.avatar AS seller_avatar, u.is_auth AS seller_is_auth, c.name AS category_name " +
+                     "FROM product p " +
+                     "LEFT JOIN user u ON p.seller_id = u.id " +
+                     "LEFT JOIN category c ON p.category_id = c.id " +
+                     "WHERE p.status = 1 ORDER BY p.create_time DESC LIMIT ? OFFSET ?";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Product.class), size, offset);
     }
 
     public Product findById(Long id) {
         String sql = "SELECT * FROM product WHERE id = ?";
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Product.class), id)
+                .stream().findFirst().orElse(null);
+    }
+
+    /**
+     * 获取商品详情（含卖家信息和分类名称）
+     */
+    public Product findByIdWithSeller(Long id) {
+        String sql = "SELECT p.*, u.username AS seller_name, u.avatar AS seller_avatar, u.is_auth AS seller_is_auth, c.name AS category_name " +
+                     "FROM product p " +
+                     "LEFT JOIN user u ON p.seller_id = u.id " +
+                     "LEFT JOIN category c ON p.category_id = c.id " +
+                     "WHERE p.id = ?";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Product.class), id)
                 .stream().findFirst().orElse(null);
     }
@@ -69,9 +86,13 @@ public class ProductRepository {
         jdbcTemplate.update(sql, productId);
     }
 
-    // 查询当前用户的商品
+    // 查询当前用户的商品（含卖家信息和分类名称）
     public List<Product> findBySellerId(Long sellerId) {
-        String sql = "SELECT * FROM product WHERE seller_id = ? ORDER BY create_time DESC";
+        String sql = "SELECT p.*, u.username AS seller_name, u.avatar AS seller_avatar, u.is_auth AS seller_is_auth, c.name AS category_name " +
+                     "FROM product p " +
+                     "LEFT JOIN user u ON p.seller_id = u.id " +
+                     "LEFT JOIN category c ON p.category_id = c.id " +
+                     "WHERE p.seller_id = ? ORDER BY p.create_time DESC";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Product.class), sellerId);
     }
 
@@ -90,21 +111,22 @@ public class ProductRepository {
                 product.getSellerId());
     }
 
-    // 搜索商品（关键词 + 分类）
+    // 搜索商品（关键词 + 分类，含卖家信息）
     public List<Product> search(String keyword, Long categoryId, int page, int size) {
         int offset = (page - 1) * size;
 
-        StringBuilder sql = new StringBuilder("SELECT * FROM product WHERE status = 1");
+        StringBuilder sql = new StringBuilder("SELECT p.*, u.username AS seller_name, u.avatar AS seller_avatar, u.is_auth AS seller_is_auth, c.name AS category_name " +
+                                              "FROM product p LEFT JOIN user u ON p.seller_id = u.id LEFT JOIN category c ON p.category_id = c.id WHERE p.status = 1");
 
         if (keyword != null && !keyword.isEmpty()) {
-            sql.append(" AND name LIKE '%").append(keyword).append("%'");
+            sql.append(" AND p.name LIKE '%").append(keyword).append("%'");
         }
 
         if (categoryId != null) {
-            sql.append(" AND category_id = ").append(categoryId);
+            sql.append(" AND p.category_id = ").append(categoryId);
         }
 
-        sql.append(" ORDER BY create_time DESC LIMIT ").append(size).append(" OFFSET ").append(offset);
+        sql.append(" ORDER BY p.create_time DESC LIMIT ").append(size).append(" OFFSET ").append(offset);
 
         return jdbcTemplate.query(sql.toString(), new BeanPropertyRowMapper<>(Product.class));
     }
@@ -114,10 +136,14 @@ public class ProductRepository {
         return jdbcTemplate.update(sql, productId);
     }
 
-    // 分页查询指定状态的商品（审核列表用）
+    // 分页查询指定状态的商品（审核列表用，含卖家信息和分类名称）
     public List<Product> findByStatus(Integer status, int page, int size) {
         int offset = (page - 1) * size;
-        String sql = "SELECT * FROM product WHERE status = ? ORDER BY create_time ASC LIMIT ? OFFSET ?";
+        String sql = "SELECT p.*, u.username AS seller_name, u.avatar AS seller_avatar, u.is_auth AS seller_is_auth, c.name AS category_name " +
+                     "FROM product p " +
+                     "LEFT JOIN user u ON p.seller_id = u.id " +
+                     "LEFT JOIN category c ON p.category_id = c.id " +
+                     "WHERE p.status = ? ORDER BY p.create_time ASC LIMIT ? OFFSET ?";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Product.class), status, size, offset);
     }
 

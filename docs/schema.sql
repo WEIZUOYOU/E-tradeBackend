@@ -244,9 +244,9 @@ INSERT INTO school_user (student_id, real_name) VALUES
 
 -- 10. 插入测试用户数据
 INSERT INTO `user` (`id`, `username`, `password`, `phone`, `credit_score`, `status`, `is_auth`, `create_time`) VALUES
-(1, '快乐小卖家', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', '13800138001', 100, 1, 0, '2026-01-15 10:30:00'),
-(2, '校园好物分享', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', '13800138002', 100, 1, 0, '2026-01-16 14:20:00'),
-(3, 'wzy学姐', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', '13800138003', 100, 1, 1, '2026-01-17 09:15:00');
+(1, '快乐小卖家', '$2a$10$UI/Xw3hXOPJEjsI5GDYvkez/VN00Ppd4SG8lKYblQmOnm9M4GfE1S.fqvM/BG', '13800138001', 100, 1, 0, '2026-01-15 10:30:00'),
+(2, '校园好物分享', '$2a$10$UI/Xw3hXOPJEjsI5GDYvkez/VN00Ppd4SG8lKYblQmOnm9M4GfE1S', '13800138002', 100, 1, 0, '2026-01-16 14:20:00'),
+(3, 'wzy学姐', '$2a$10$UI/Xw3hXOPJEjsI5GDYvkez/VN00Ppd4SG8lKYblQmOnm9M4GfE1S', '13800138003', 100, 1, 1, '2026-01-17 09:15:00');
 
 -- 11. 插入实名认证数据
 INSERT INTO `authentication` (`user_id`, `real_name`, `student_id`, `status`, `create_time`) VALUES
@@ -254,9 +254,9 @@ INSERT INTO `authentication` (`user_id`, `real_name`, `student_id`, `status`, `c
 
 -- 12. 插入测试商品数据
 INSERT INTO `product` (`id`, `name`, `description`, `price`, `stock`, `sold_count`, `view_count`, `category_id`, `seller_id`, `cover_image`, `images`, `status`, `is_recommend`, `create_time`) VALUES
-(1, '半身裙', '夏季新款半身裙，高腰设计，显瘦显高，M码，九成新，适合日常穿搭', 68.00, 1, 0, 15, 5, 1, '/uploads/2026-06-04/半身裙.png', '/uploads/2026-06-04/半身裙.png', 1, 0, '2026-06-01 10:00:00'),
-(2, '解剖学教材', '系统解剖学（第9版），人民卫生出版社，几乎全新，考研必备，附带笔记', 45.00, 1, 0, 32, 1, 2, '/uploads/2026-06-04/解剖学教材.png', '/uploads/2026-06-04/解剖学教材.png', 1, 1, '2026-06-02 14:30:00'),
-(3, '笔记本电脑', '联想小新Pro14 2023款，i7-13620H，16GB内存，512GB SSD，95新，保修期内', 4500.00, 1, 0, 58, 2, 3, '/uploads/2026-06-04/笔记本电脑.png', '/uploads/2026-06-04/笔记本电脑.png', 1, 1, '2026-06-03 09:00:00');
+(1, '半身裙', '夏季新款半身裙，高腰设计，显瘦显高，M码，九成新，适合日常穿搭', 68.00, 1, 0, 15, 5, 1, '/uploads/2026-06-04/dress.png', '/uploads/2026-06-04/dress.png', 1, 0, '2026-06-01 10:00:00'),
+(2, '解剖学教材', '系统解剖学（第9版），人民卫生出版社，几乎全新，考研必备，附带笔记', 45.00, 1, 0, 32, 1, 2, '/uploads/2026-06-04/book.png', '/uploads/2026-06-04/book.png', 1, 1, '2026-06-02 14:30:00'),
+(3, '笔记本电脑', '联想小新Pro14 2023款，i7-13620H，16GB内存，512GB SSD，95新，保修期内', 4500.00, 1, 0, 58, 2, 3, '/uploads/2026-06-04/laptop.png', '/uploads/2026-06-04/laptop.png', 1, 1, '2026-06-03 09:00:00');
 
 -- 13. 插入测试聊天记录
 INSERT INTO `message` (`id`, `sender_id`, `receiver_id`, `content`, `is_read`, `create_time`) VALUES

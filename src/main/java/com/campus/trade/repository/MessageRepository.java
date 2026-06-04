@@ -43,4 +43,63 @@ public class MessageRepository {
         String sql = "UPDATE message SET is_read = 1 WHERE receiver_id = ? AND sender_id = ? AND is_read = 0";
         jdbcTemplate.update(sql, readerId, senderId);
     }
+
+    /**
+     * 获取用户的所有会话列表（每个会话最新一条消息）
+     */
+    public List<Message> findSessions(Long userId) {
+        String sql = "SELECT m.* FROM message m " +
+                     "INNER JOIN (" +
+                     "    SELECT CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END AS other_id, " +
+                     "           MAX(create_time) AS last_time " +
+                     "    FROM message " +
+                     "    WHERE sender_id = ? OR receiver_id = ? " +
+                     "    GROUP BY other_id" +
+                     ") t ON (CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END = t.other_id AND m.create_time = t.last_time) " +
+                     "ORDER BY m.create_time DESC";
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Message.class), userId, userId, userId, userId);
+    }
+
+    /**
+     * 获取用户的未读消息总数
+     */
+    public int countUnread(Long userId) {
+        String sql = "SELECT COUNT(*) FROM message WHERE receiver_id = ? AND is_read = 0";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId);
+        return count != null ? count : 0;
+    }
+
+    /**
+     * 获取用户未读消息的会话数
+     */
+    public int countUnreadSessions(Long userId) {
+        String sql = "SELECT COUNT(DISTINCT sender_id) FROM message WHERE receiver_id = ? AND is_read = 0";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId);
+        return count != null ? count : 0;
+    }
+
+    /**
+     * 标记单条消息已读
+     */
+    public void markMessageAsRead(Long messageId, Long userId) {
+        String sql = "UPDATE message SET is_read = 1 WHERE id = ? AND receiver_id = ?";
+        jdbcTemplate.update(sql, messageId, userId);
+    }
+
+    /**
+     * 标记与某个用户的所有消息已读
+     */
+    public void markSessionAsRead(Long userId, Long targetUserId) {
+        String sql = "UPDATE message SET is_read = 1 WHERE receiver_id = ? AND sender_id = ? AND is_read = 0";
+        jdbcTemplate.update(sql, userId, targetUserId);
+    }
+
+    /**
+     * 统计与某个用户的未读消息数
+     */
+    public int countUnreadBySender(Long userId, Long senderId) {
+        String sql = "SELECT COUNT(*) FROM message WHERE receiver_id = ? AND sender_id = ? AND is_read = 0";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId, senderId);
+        return count != null ? count : 0;
+    }
 }

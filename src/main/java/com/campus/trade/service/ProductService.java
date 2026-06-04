@@ -30,7 +30,7 @@ public class ProductService {
     public Long publishProduct(Long sellerId, PublishProductRequest req) {
         // 验证分类ID
         if (!categoryService.validateCategory(req.getCategoryId())) {
-            throw new BusinessException("无效的商品分类");
+            throw new BusinessException(2006, "无效的商品分类");
         }
 
         // 处理图片上传
@@ -38,11 +38,22 @@ public class ProductService {
         if (images == null || images.isEmpty()) {
             throw new BusinessException("至少上传一张图片");
         }
+        // 验证：图片数量不能超过9张
+        if (images.size() > 9) {
+            throw new BusinessException(2011, "图片数量不能超过9张");
+        }
         List<String> savedPaths = images.stream().map(file -> {
             try {
                 return FileUploadUtils.saveFile(uploadDir, file);
             } catch (IOException e) {
-                throw new BusinessException("图片上传失败: " + e.getMessage());
+                String message = e.getMessage();
+                if (message.contains("格式")) {
+                    throw new BusinessException(2009, "格式不支持");
+                } else if (message.contains("超过5MB")) {
+                    throw new BusinessException(2010, "单图大小不能超过5MB");
+                } else {
+                    throw new BusinessException(2003, "图片上传失败: " + message);
+                }
             }
         }).collect(Collectors.toList());
 
@@ -70,9 +81,9 @@ public class ProductService {
         return productRepository.findAll(page, size);
     }
 
-    // 商品详情
+    // 商品详情（含卖家信息）
     public Product getProductDetail(Long productId) {
-        Product product = productRepository.findById(productId);
+        Product product = productRepository.findByIdWithSeller(productId);
         if (product == null) {
             throw new BusinessException("商品不存在");
         }

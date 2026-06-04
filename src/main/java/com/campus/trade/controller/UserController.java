@@ -1,12 +1,15 @@
 package com.campus.trade.controller;
 
 import com.campus.trade.common.Result;
+import com.campus.trade.dto.request.BatchUserInfoRequest;
 import com.campus.trade.dto.request.LoginRequest;
 import com.campus.trade.dto.request.RegisterRequest;
 import com.campus.trade.dto.request.UserManagementRequest;
 import com.campus.trade.dto.request.VerifyRequest;
+import com.campus.trade.dto.response.UserInfoResponse;
 import com.campus.trade.entity.User;
 import com.campus.trade.service.UserService;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpSession;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/user")
@@ -143,6 +147,38 @@ public class UserController {
             return Result.error(401, "请先登录");
         }
         return Result.success(userService.listPendingAuthUsers(page, size));
+    }
+
+    /**
+     * 获取用户公开信息（无需登录）
+     * 用于商品详情/聊天显示卖家信息
+     */
+    @GetMapping("/info/{userId}")
+    public Result<UserInfoResponse> getUserInfo(@PathVariable Long userId) {
+        User user = userService.getUserInfo(userId);
+        if (user == null) {
+            return Result.error(404, "用户不存在");
+        }
+        UserInfoResponse response = new UserInfoResponse();
+        BeanUtils.copyProperties(user, response);
+        return Result.success(response);
+    }
+
+    /**
+     * 批量获取用户信息（无需登录）
+     * 用于消息列表批量加载会话用户
+     */
+    @PostMapping("/batch-info")
+    public Result<List<UserInfoResponse>> batchGetUserInfo(@RequestBody BatchUserInfoRequest request) {
+        List<User> users = userService.batchGetUserInfo(request.getUserIds());
+        List<UserInfoResponse> responses = users.stream()
+                .map(user -> {
+                    UserInfoResponse response = new UserInfoResponse();
+                    BeanUtils.copyProperties(user, response);
+                    return response;
+                })
+                .collect(Collectors.toList());
+        return Result.success(responses);
     }
 
 }

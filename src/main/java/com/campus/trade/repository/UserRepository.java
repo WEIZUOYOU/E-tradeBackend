@@ -110,4 +110,22 @@ public class UserRepository {
         String sql = "SELECT * FROM user WHERE is_auth = ? ORDER BY create_time DESC LIMIT ? OFFSET ?";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(User.class), isAuth, size, offset);
     }
+
+    /**
+     * 根据ID列表批量查询用户（用于消息会话批量加载）
+     */
+    public List<User> findByIds(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        StringBuilder sql = new StringBuilder("SELECT * FROM user WHERE id IN (");
+        for (int i = 0; i < userIds.size(); i++) {
+            if (i > 0) {
+                sql.append(",");
+            }
+            sql.append("?");
+        }
+        sql.append(")");
+        return jdbcTemplate.query(sql.toString(), new BeanPropertyRowMapper<>(User.class), userIds.toArray());
+    }
 }

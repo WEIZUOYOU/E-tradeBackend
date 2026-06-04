@@ -34,6 +34,12 @@ public class Product {
     private LocalDateTime createTime;
     private String coverImage; // 封面图片
 
+    // 扩展字段（联表查询时填充）
+    private String sellerName; // 卖家名称
+    private String sellerAvatar; // 卖家头像
+    private Integer sellerIsAuth; // 卖家是否实名认证
+    private String categoryName; // 分类名称
+
     /**
      * 自动将 imageUrls（String）转换为 images（List）
      */

@@ -189,4 +189,18 @@ public class UserService {
     public List<User> listPendingAuthUsers(int page, int size) {
         return userRepository.findByAuthStatus(0, page, size);
     }
+
+    /**
+     * 根据用户ID获取用户信息（公开信息，无需登录）
+     */
+    public User getUserInfo(Long userId) {
+        return userRepository.findById(userId);
+    }
+
+    /**
+     * 批量查询用户信息
+     */
+    public List<User> batchGetUserInfo(List<Long> userIds) {
+        return userRepository.findByIds(userIds);
+    }
 }
