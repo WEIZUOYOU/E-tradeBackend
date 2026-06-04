@@ -531,6 +531,128 @@ Notification对象结构:
 说明: 微信模板消息推送已预留骨架(WeChatNotifyUtil)，配置微信AppId/AppSecret
       后即可在 createAndSend 时同步推送微信消息。
 
+----------------------------------------------------------------------
+八、收藏模块 — /api/v1/trade/favorite
+----------------------------------------------------------------------
+
+44. 添加收藏
+    POST /api/v1/trade/favorite
+    认证: 需登录
+    请求体 (JSON):
+    {
+      "productId": 1  // 商品ID，必填
+    }
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 不能重复收藏同一商品
+
+45. 取消收藏
+    DELETE /api/v1/trade/favorite/{productId}
+    认证: 需登录
+    路径参数: productId — 商品ID
+    返回: { "code": 200, "msg": "成功", "data": null }
+
+46. 检查收藏状态
+    GET /api/v1/trade/favorite/{productId}/status
+    认证: 需登录
+    路径参数: productId — 商品ID
+    返回: { "code": 200, "msg": "成功", "data": {"productId": 1, "isFavorited": true} }
+    说明: 返回当前用户是否已收藏该商品
+
+47. 收藏列表
+    GET /api/v1/trade/favorite?page=1&size=10
+    认证: 需登录
+    查询参数: page(默认1), size(默认10)
+    返回: { "code": 200, "msg": "成功", "data": [<FavoriteResponse列表>] }
+    说明: 返回当前用户收藏的商品列表
+
+FavoriteResponse对象结构:
+{
+  "id":           1,              // 收藏记录ID
+  "productId":    1,              // 商品ID
+  "productName":  "二手手机",      // 商品名称
+  "productImage": "url",          // 商品封面图
+  "productPrice": 999.00,         // 商品价格
+  "sellerName":   "张三",         // 卖家名称
+  "createTime":   "2024-01-01T..." // 收藏时间
+}
+
+----------------------------------------------------------------------
+九、评价模块 — /api/v1/trade/review
+----------------------------------------------------------------------
+
+48. 提交评价
+    POST /api/v1/trade/review
+    认证: 需登录
+    请求体 (JSON):
+    {
+      "orderNo":   "20240101xxx",  // 订单编号，必填
+      "toUserId":  2,              // 被评价用户ID，必填
+      "rating":    5,              // 评分，1-5，必填
+      "comment":   "交易很愉快"    // 评价内容，选填
+    }
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 订单完成后才能评价，每个订单只能评价一次
+
+49. 获取订单评价
+    GET /api/v1/trade/review/{orderNo}
+    认证: 无需登录
+    路径参数: orderNo — 订单编号
+    返回: { "code": 200, "msg": "成功", "data": [<ReviewResponse列表>] }
+    说明: 返回该订单的所有评价记录
+
+ReviewResponse对象结构:
+{
+  "id":         1,              // 评价ID
+  "orderNo":    "20240101xxx",  // 订单编号
+  "fromUserId": 1,              // 评价人ID
+  "fromUserName": "张三",       // 评价人名称
+  "toUserId":   2,              // 被评价人ID
+  "rating":     5,              // 评分
+  "comment":    "交易很愉快",   // 评价内容
+  "createTime": "2024-01-01T..." // 评价时间
+}
+
+----------------------------------------------------------------------
+十、信用模块 — /api/v1/trade/credit
+----------------------------------------------------------------------
+
+50. 获取用户信用档案
+    GET /api/v1/trade/credit/{userId}
+    认证: 无需登录
+    路径参数: userId — 用户ID
+    返回: { "code": 200, "msg": "成功", "data": {<CreditDetailResponse对象>} }
+    说明: 返回用户的信用分、评价统计等信息
+
+51. 获取评价历史
+    GET /api/v1/trade/credit/{userId}/reviews?page=1&size=10
+    认证: 无需登录
+    路径参数: userId — 用户ID
+    查询参数: page(默认1), size(默认10)
+    返回: { "code": 200, "msg": "成功", "data": [<ReviewHistoryResponse列表>] }
+    说明: 返回该用户收到的所有评价
+
+CreditDetailResponse对象结构:
+{
+  "userId":       1,             // 用户ID
+  "userName":     "张三",        // 用户名
+  "creditScore":  100,           // 当前信用分
+  "totalReviews": 10,            // 总评价数
+  "avgRating":    4.5,           // 平均评分
+  "goodCount":    8,             // 好评数(4-5星)
+  "badCount":     1              // 差评数(1-2星)
+}
+
+ReviewHistoryResponse对象结构:
+{
+  "id":         1,              // 评价ID
+  "orderNo":    "20240101xxx",  // 订单编号
+  "fromUserId": 2,              // 评价人ID
+  "fromUserName": "李四",       // 评价人名称
+  "rating":     5,              // 评分
+  "comment":    "交易很愉快",   // 评价内容
+  "createTime": "2024-01-01T..." // 评价时间
+}
+
 ================================================================================
 附录: 错误码汇总
 ================================================================================
@@ -570,5 +692,14 @@ Notification对象结构:
   4001  该举报已处理
   4002  举报记录不存在
 
+收藏相关 (5000-5999):
+  5001  商品已收藏，请勿重复操作
+  5002  收藏记录不存在
+
+评价相关 (6000-6999):
+  6001  订单未完成，无法评价
+  6002  该订单已评价
+  6003  不能评价自己
+
 业务通用:
-  5000  业务处理逻辑错误
+  9000  业务处理逻辑错误

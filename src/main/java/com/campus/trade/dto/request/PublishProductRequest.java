@@ -28,7 +28,7 @@ public class PublishProductRequest {
     @Size(max = 500)
     private String description;
 
-    private Integer categoryId;
+    private Long categoryId;
 
     // 图片文件（前端上传多个）
     private List<MultipartFile> images;

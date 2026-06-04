@@ -11,7 +11,7 @@ import java.util.List;
 public class Product {
     private Long id;
     private Long sellerId;
-    private Integer categoryId; // 改为 Integer，与数据库 INT 一致
+    private Long categoryId; // 与数据库 BIGINT 一致
     private String name;
     private BigDecimal price; // 当前售价
     private Integer stock;

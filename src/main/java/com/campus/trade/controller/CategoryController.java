@@ -31,7 +31,7 @@ public class CategoryController {
      * 验证分类ID有效性
      */
     @GetMapping("/validate/{categoryId}")
-    public Result<Map<String, Object>> validateCategory(@PathVariable Integer categoryId) {
+    public Result<Map<String, Object>> validateCategory(@PathVariable Long categoryId) {
         boolean valid = categoryService.validateCategory(categoryId);
         Map<String, Object> result = new HashMap<>();
         result.put("valid", valid);

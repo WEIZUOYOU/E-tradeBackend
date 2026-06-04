@@ -1,4 +1,6 @@
 -- 1. 准备环境
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
 DROP DATABASE IF EXISTS E_tradeDB;
 CREATE DATABASE IF NOT EXISTS E_tradeDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE E_tradeDB;
@@ -53,7 +55,7 @@ CREATE TABLE `product` (
     `stock` INT NOT NULL DEFAULT 1 COMMENT '库存',
     `sold_count` INT DEFAULT 0 COMMENT '已售数量',
     `view_count` INT DEFAULT 0 COMMENT '浏览数量',
-    `category_id` INT NOT NULL COMMENT '分类ID',
+    `category_id` BIGINT NOT NULL COMMENT '分类ID',
     `seller_id` BIGINT NOT NULL COMMENT '卖家ID',
     `cover_image` VARCHAR(500) COMMENT '封面图片',
     `images` TEXT COMMENT '图片列表JSON',

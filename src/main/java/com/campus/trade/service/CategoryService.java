@@ -24,18 +24,18 @@ public class CategoryService {
     /**
      * 验证分类ID是否有效（存在且启用）
      */
-    public boolean validateCategory(Integer categoryId) {
+    public boolean validateCategory(Long categoryId) {
         if (categoryId == null || categoryId <= 0) {
             return false;
         }
-        Category category = categoryRepository.findById(categoryId.longValue());
+        Category category = categoryRepository.findById(categoryId);
         return category != null && Boolean.TRUE.equals(category.getIsActive());
     }
 
     /**
      * 根据ID获取分类
      */
-    public Category getById(Integer categoryId) {
-        return categoryRepository.findById(categoryId.longValue());
+    public Category getById(Long categoryId) {
+        return categoryRepository.findById(categoryId);
     }
 }
