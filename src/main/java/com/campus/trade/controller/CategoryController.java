@@ -1,17 +1,16 @@
 package com.campus.trade.controller;
 
 import com.campus.trade.common.Result;
-import com.campus.trade.dto.request.CreateCategoryRequest;
 import com.campus.trade.entity.Category;
 import com.campus.trade.service.CategoryService;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/category")
-@Validated
 public class CategoryController {
     private final CategoryService categoryService;
 
@@ -19,13 +18,29 @@ public class CategoryController {
         this.categoryService = categoryService;
     }
 
+    /**
+     * 获取分类列表（只返回一级分类，按sort_order升序排列）
+     */
     @GetMapping("/list")
-    public Result<List<Category>> list() {
-        return Result.success(categoryService.getAllCategories());
+    public Result<List<Category>> getCategoryList() {
+        List<Category> categories = categoryService.getActiveCategories();
+        return Result.success(categories);
     }
 
-    @PostMapping("/add")
-    public Result<Long> add(@Validated @RequestBody CreateCategoryRequest req) {
-        return Result.success(categoryService.createCategory(req));
+    /**
+     * 验证分类ID有效性
+     */
+    @GetMapping("/validate/{categoryId}")
+    public Result<Map<String, Object>> validateCategory(@PathVariable Integer categoryId) {
+        boolean valid = categoryService.validateCategory(categoryId);
+        Map<String, Object> result = new HashMap<>();
+        result.put("valid", valid);
+
+        if (valid) {
+            Category category = categoryService.getById(categoryId);
+            result.put("categoryName", category.getName());
+        }
+
+        return Result.success(result);
     }
 }

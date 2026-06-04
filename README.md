@@ -48,14 +48,7 @@ file:
 ### 4. 运行项目
 
 ```bash
-# 编译
-mvn clean compile
-
-# 打包
-mvn clean package -DskipTests
-
-# 运行
-java -jar target/campus-trade-1.0-SNAPSHOT.jar
+mvn spring-boot:run
 ```
 
 ## 完整 API 文档

@@ -20,11 +20,19 @@ public class ProductService {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private CategoryService categoryService;
+
     @Value("${file.upload-dir}")
     private String uploadDir;
 
     // 发布商品（含图片上传）
     public Long publishProduct(Long sellerId, PublishProductRequest req) {
+        // 验证分类ID
+        if (!categoryService.validateCategory(req.getCategoryId())) {
+            throw new BusinessException("无效的商品分类");
+        }
+
         // 处理图片上传
         List<MultipartFile> images = req.getImages();
         if (images == null || images.isEmpty()) {
@@ -85,6 +93,11 @@ public class ProductService {
 
         if (!old.getSellerId().equals(userId)) {
             throw new BusinessException("无权限");
+        }
+
+        // 验证分类ID
+        if (req.getCategoryId() != null && !categoryService.validateCategory(req.getCategoryId())) {
+            throw new BusinessException("无效的商品分类");
         }
 
         // 图片处理（可选）

@@ -22,16 +22,27 @@ CREATE TABLE `user` (
 
 -- 3. 基础表：商品分类表
 CREATE TABLE `category` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '分类ID',
     `name` VARCHAR(50) NOT NULL COMMENT '分类名称',
-    `description` VARCHAR(255) COMMENT '分类描述',
-    `icon` VARCHAR(500) COMMENT '分类图标',
-    `parent_id` INT DEFAULT 0 COMMENT '父分类ID',
-    `sort_order` INT DEFAULT 0 COMMENT '排序',
-    `status` TINYINT DEFAULT 1 COMMENT '状态',
-    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_parent_id (parent_id)
+    `parent_id` BIGINT DEFAULT NULL COMMENT '父分类ID（NULL表示一级分类）',
+    `sort_order` INT DEFAULT 0 COMMENT '排序顺序',
+    `is_active` TINYINT(1) DEFAULT 1 COMMENT '是否启用：1-启用，0-禁用',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_parent_id` (`parent_id`),
+    KEY `idx_sort_order` (`sort_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品分类表';
+
+-- 插入7个一级分类
+INSERT INTO `category` (`id`, `name`, `parent_id`, `sort_order`, `is_active`) VALUES
+(1, '教材与学习资料', NULL, 1, 1),
+(2, '数码产品与配件', NULL, 2, 1),
+(3, '生活电器与宿舍用品', NULL, 3, 1),
+(4, '运动与户外', NULL, 4, 1),
+(5, '服饰与配饰', NULL, 5, 1),
+(6, '美妆与个护', NULL, 6, 1),
+(7, '其他/闲置杂物', NULL, 7, 1);
 
 -- 4. 核心表：商品表
 CREATE TABLE `product` (
