@@ -90,6 +90,15 @@ public class OrderRepository {
         return Objects.requireNonNull(keyHolder.getKey()).longValue();
     }
 
+    public Order findById(Long orderId) {
+        String sql = "SELECT * FROM `order` WHERE id = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, new BeanPropertyRowMapper<>(Order.class), orderId);
+        } catch (EmptyResultDataAccessException e) {
+            return null;
+        }
+    }
+
     public Order findByOrderNo(String orderNo) {
         String sql = "SELECT * FROM `order` WHERE order_no = ?";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Order.class), orderNo)

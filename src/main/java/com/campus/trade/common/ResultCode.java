@@ -38,9 +38,12 @@ public enum ResultCode {
     FILE_COUNT_EXCEEDED(2011, "图片数量不能超过9张"),
 
     // --- 4. 订单/交易相关 (3000-3999) ---
-    ORDER_STATUS_ERROR(3001, "订单状态异常，无法操作"),
-    SELF_BUY_FORBIDDEN(3002, "无法购买自己发布的商品"),
-    CREDIT_TOO_LOW(3003, "信用分过低，无法发起交易"),
+    CANNOT_BUY_OWN_PRODUCT(3001, "不能购买自己的商品"),
+    PRODUCT_STOCK_INSUFFICIENT(3002, "商品库存不足"),
+    CREDIT_TOO_LOW_FOR_TRADE(3003, "信用分过低，无法交易"),
+    TRADE_NOT_FOUND(3004, "交易不存在"),
+    NO_TRADE_PERMISSION(3005, "无操作权限"),
+    TRADE_STATUS_NOT_ALLOWED(3006, "交易状态不允许此操作"),
 
     // --- 5. 举报相关 (4000-4999) ---
     REPORT_ALREADY_HANDLED(4001, "该举报已处理"),

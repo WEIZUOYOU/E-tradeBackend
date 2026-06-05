@@ -15,5 +15,10 @@ public class SendMessageRequest {
     private String content;
 
     @NotNull(message = "消息类型不能为空")
-    private Integer type; // 0:文字, 1:图片URL
+    private Integer type; // 0-文本, 1-交易卡片
+    
+    // 交易卡片相关字段
+    private Long tradeId;          // 交易ID
+    private Integer tradeStatus;   // 交易状态
+    private String tradeData;      // 交易数据JSON
 }

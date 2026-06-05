@@ -1,7 +1,8 @@
 ================================================================================
  校园二手交易平台 — API 接口文档
- 版本: 1.0 | 基准路径: http://localhost:8080
- 更新日期: 2026-06-04
+ 版本: 1.1 | 基准路径: http://localhost:8080
+ 更新日期: 2026-06-05
+ 更新内容: 交易模块新增 cancel 接口、列表分页、参数完整校验、状态机文档
 ================================================================================
 
 【统一响应格式】
@@ -300,100 +301,134 @@ Product对象结构:
 }
 
 ----------------------------------------------------------------------
-三、订单模块 — /api/v1/trade/order
+三、交易模块 — /api/trade
 ----------------------------------------------------------------------
 
-24. 创建订单
-    POST /api/v1/trade/order
+24. 创建交易
+    POST /api/trade/create
     认证: 需登录
     请求体 (JSON):
     {
       "productId":       1,            // 商品ID，必填
-      "quantity":        1,            // 数量，必填
-      "addressId":       1,            // 收货地址ID（线上交易时必填）
-      "tradeType":       0,            // 0-线上/快递, 1-线下交易，必填
-      "payType":         1,            // 支付方式
-      "meetingTime":     "2024-01-01 12:00:00",  // 线下交易约定时间
-      "meetingLocation": "图书馆一楼"   // 线下交易约定地点
+      "meetingTime":     "2024-01-01 12:00:00",  // 交易约定时间，必填
+      "meetingLocation": "图书馆一楼"   // 交易约定地点，必填
     }
-    返回: { "code": 200, "msg": "成功", "data": {"orderId": "1", "orderNo": "xxx"} }
-    说明: 创建订单后自动扣减库存。不可购买自己的商品。信用分过低时拒绝交易
+    返回: { "code": 200, "msg": "成功", "data": {"tradeId": "1", "tradeNo": "xxx"} }
+    说明: 创建交易后自动扣减库存。不可购买自己的商品。信用分过低时拒绝交易。
+         交易状态为0(待卖家确认)
 
-25. 订单详情
-    GET /api/v1/trade/order/{id}
+25. 卖家确认交易
+    POST /api/trade/confirm
+    认证: 需登录（仅卖家）
+    请求体 (JSON):
+    {
+      "tradeId":     1,              // 交易ID，必填
+      "sellerPhone": "13800138000"   // 卖家联系电话，必填
+    }
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 卖家填写联系电话后确认交易，状态变为1(待交易)
+
+26. 交易详情
+    GET /api/trade/detail/{tradeId}
     认证: 需登录
-    路径参数: id — 订单ID
-    返回: { "code": 200, "msg": "成功", "data": {<OrderDetailResponse对象>} }
+    路径参数: tradeId — 交易ID
+    返回: { "code": 200, "msg": "成功", "data": {<Trade对象>} }
     说明: 仅买家和卖家可查看
 
-26. 取消订单
-    PUT /api/v1/trade/order/{id}/cancel
-    认证: 需登录（仅买家可操作）
-    路径参数: id — 订单ID
+27. 修改交易信息
+    POST /api/trade/update
+    认证: 需登录（买家或卖家）
+    请求体 (JSON):
+    {
+      "tradeId":         1,                      // 交易ID，必填
+      "meetingTime":     "2024-01-01 14:00:00",  // 新的交易时间，必填
+      "meetingLocation": "食堂一楼"              // 新的交易地点，必填
+    }
     返回: { "code": 200, "msg": "成功", "data": null }
-    说明: 订单状态→4(已取消)，恢复库存
+    说明: 仅在待交易状态(status=1)时可修改。修改后需对方确认
 
-27. 买家订单列表
-    GET /api/v1/trade/order/buyer/list?status=1
+28. 确认修改
+    POST /api/trade/confirmUpdate
+    认证: 需登录（买家或卖家）
+    请求体 (JSON):
+    {
+      "tradeId": 1  // 交易ID，必填
+    }
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 确认对方的修改请求
+
+29. 完成交易
+    POST /api/trade/complete
+    认证: 需登录（买家或卖家）
+    请求体 (JSON):
+    {
+      "tradeId": 1  // 交易ID，必填
+    }
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 任意一方点击完成交易，状态变为4(已完成)。交易完成后可互评
+         仅在待交易状态(status=1)时可完成
+
+30. 取消交易
+    POST /api/trade/cancel
+    认证: 需登录（买家或卖家）
+    请求体 (JSON):
+    {
+      "tradeId": 1  // 交易ID，必填
+    }
+    返回: { "code": 200, "msg": "成功", "data": null }
+    说明: 仅在待卖家确认状态(status=0)时可取消
+         取消后自动恢复商品库存，状态变为5(已取消)
+
+31. 我的交易列表
+    GET /api/trade/my/list?status=1&page=1&size=10
     认证: 需登录
-    查询参数: status — 订单状态，选填（不传则查全部）
-    返回: { "code": 200, "msg": "成功", "data": [<OrderDetailResponse列表>] }
+    查询参数:
+      status — 交易状态，选填（不传则查全部）
+      page   — 页码，选填，默认1
+      size   — 每页条数，选填，默认10，最大100
+    返回: { "code": 200, "msg": "成功", "data": { "list": [<Trade列表>], "page": 1, "size": 10 } }
+    说明: 返回当前用户作为买家或卖家的所有交易，按创建时间倒序
 
-28. 卖家订单列表
-    GET /api/v1/trade/order/seller/list?status=1
-    认证: 需登录
-    查询参数: status — 订单状态，选填
-    返回: { "code": 200, "msg": "成功", "data": [<OrderDetailResponse列表>] }
+交易状态说明:
+  0 - 待卖家确认：买家提交交易信息后，卖家可确认或拒绝
+  1 - 待交易：卖家确认后，双方可修改信息或完成交易
+  4 - 已完成：交易完成，可互评
+  5 - 已取消：交易被取消，库存已恢复
 
-29. 确认订单/付款
-    PUT /api/v1/trade/order/{id}/confirm
-    认证: 需登录（仅买家）
-    路径参数: id — 订单ID
-    返回: { "code": 200, "msg": "成功", "data": null }
-    说明: 订单状态→1(已支付/交易中)
-
-30. 发货/交付
-    PUT /api/v1/trade/order/{id}/deliver
-    认证: 需登录（仅卖家）
-    路径参数: id — 订单ID
-    返回: { "code": 200, "msg": "成功", "data": null }
-    说明: 订单状态→2(已发货/已交付)
-
-31. 确认收货
-    PUT /api/v1/trade/order/{id}/receive
-    认证: 需登录（仅买家）
-    路径参数: id — 订单ID
-    返回: { "code": 200, "msg": "成功", "data": null }
-    说明: 订单状态→3(已完成)
-
-订单状态流转:
-  待付款(0) → [买家付款/confirm] → 待发货(1) → [卖家发货/deliver] → 待收货(2) → [买家收货/receive] → 已完成(3)
-  任意非终态 → [买家取消/cancel] → 已取消(4)
-
-OrderDetailResponse对象结构:
+Trade对象结构:
 {
-  "id":                 1,         // 订单ID
-  "orderNo":            "xxx",     // 订单编号
-  "status":             1,         // 0-待付款 1-待发货 2-待收货 3-已完成 4-已取消
-  "quantity":           1,         // 数量
-  "totalAmount":        999.00,    // 总金额
-  "createTime":         "...",     // 创建时间
-  "payTime":            "...",     // 付款时间
-  "completeTime":       "...",     // 完成时间
+  "id":                 1,         // 交易ID
+  "tradeNo":            "xxx",     // 交易编号（格式：yyyyMMddHHmmss+4位随机数）
   "productId":          1,         // 商品ID
-  "productName":        "手机",    // 商品名称
-  "productPriceAtOrder": 999.00,   // 下单时单价
-  "productImage":       "url",     // 商品图片
-  "sellerId":           2,         // 卖家ID
-  "sellerName":         "李四",    // 卖家名称
-  "sellerAvatar":       "url",     // 卖家头像
+  "productName":        "手机",    // 商品名称（交易时快照）
+  "productPrice":       999.00,    // 商品价格（交易时快照）
+  "productImage":       "url",     // 商品图片（交易时快照）
   "buyerId":            1,         // 买家ID
-  "buyerName":          "张三",    // 买家名称
-  "buyerAvatar":        "url",     // 买家头像
-  "receiverName":       "张三",    // 收货人
-  "receiverPhone":      "138...",  // 收货电话
-  "receiverAddress":    "地址"     // 收货地址
+  "buyerName":          "张三",    // 买家名称（交易时快照）
+  "buyerAvatar":        "url",     // 买家头像（交易时快照）
+  "buyerCreditScore":   100,       // 买家信用分（交易时快照）
+  "buyerIsAuth":        1,         // 买家认证状态（交易时快照）
+  "buyerPhone":         "138...",  // 买家联系电话
+  "sellerId":           2,         // 卖家ID
+  "sellerName":         "李四",    // 卖家名称（交易时快照）
+  "sellerAvatar":       "url",     // 卖家头像（交易时快照）
+  "sellerCreditScore":  100,       // 卖家信用分（交易时快照）
+  "sellerIsAuth":       1,         // 卖家认证状态（交易时快照）
+  "sellerPhone":        "139...",  // 卖家联系电话（卖家确认时填写）
+  "meetingLocation":    "图书馆",  // 面交地点
+  "meetingTime":        "...",     // 交易时间
+  "status":             1,         // 0-待卖家确认 1-待交易 4-已完成 5-已取消
+  "createTime":         "...",     // 创建时间
+  "updateTime":         "..."      // 更新时间
 }
+
+交易业务规则:
+  1. 创建交易：买家提交后状态为0(待卖家确认)，自动扣减库存
+  2. 卖家确认：填写联系电话后状态变为1(待交易)
+  3. 修改信息：仅状态1可修改，需对方确认(confirmUpdate)
+  4. 完成交易：仅状态1可由任一方完成，状态变为4
+  5. 取消交易：仅状态0可由任一方取消，自动恢复库存，状态变为5
+  6. 评价开放：状态4(已完成)后可互评
 
 ----------------------------------------------------------------------
 四、分类模块 — /api/category
@@ -432,12 +467,16 @@ Category对象结构:
     认证: 需登录
     请求体 (JSON):
     {
-      "receiverId": 2,          // 接收者用户ID，必填
-      "productId":  1,          // 关联商品ID，选填
-      "content":    "你好，我想买", // 消息内容，必填
-      "type":       0           // 0-文字消息, 1-图片URL，必填
+      "receiverId":  2,          // 接收者用户ID，必填
+      "productId":   1,          // 关联商品ID，选填
+      "content":     "你好，我想买", // 消息内容，必填
+      "type":        0,          // 0-文本消息, 1-交易卡片，必填
+      "tradeId":     1,          // 交易ID（type=1时必填）
+      "tradeStatus": 1,          // 交易状态（type=1时必填）
+      "tradeData":   "{...}"     // 交易数据JSON（type=1时必填）
     }
     返回: { "code": 200, "msg": "成功", "data": null }
+    说明: type=1时为交易卡片消息，需提供交易相关信息
 
 35. 聊天记录
     GET /api/message/history?targetUserId=2
@@ -488,14 +527,17 @@ MessageSessionResponse对象结构:
 
 Message对象结构:
 {
-  "id":         1,            // 消息ID
-  "senderId":   1,            // 发送者ID
-  "receiverId": 2,            // 接收者ID
-  "productId":  1,            // 关联商品ID
-  "content":    "你好...",     // 消息内容
-  "type":       0,            // 0-文字, 1-图片URL
-  "isRead":     0,            // 0-未读, 1-已读
-  "createTime": "..."         // 发送时间
+  "id":          1,            // 消息ID
+  "senderId":    1,            // 发送者ID
+  "receiverId":  2,            // 接收者ID
+  "productId":   1,            // 关联商品ID
+  "content":     "你好...",     // 消息内容
+  "type":        0,            // 0-文本, 1-交易卡片
+  "isRead":      0,            // 0-未读, 1-已读
+  "createTime":  "...",        // 发送时间
+  "tradeId":     1,            // 交易ID（type=1时有值）
+  "tradeStatus": 1,            // 交易状态（type=1时有值）
+  "tradeData":   "{...}"       // 交易数据JSON（type=1时有值）
 }
 
 ----------------------------------------------------------------------
@@ -764,10 +806,13 @@ ReviewHistoryResponse对象结构:
   2010  单图大小不能超过5MB
   2011  图片数量不能超过9张
 
-订单相关 (3000-3999):
-  3001  订单状态异常，无法操作
-  3002  无法购买自己发布的商品
-  3003  信用分过低，无法发起交易
+交易相关 (3000-3999):
+  3001  不能购买自己的商品
+  3002  商品库存不足
+  3003  信用分过低
+  3004  交易不存在
+  3005  无操作权限
+  3006  交易状态不允许此操作
 
 举报相关 (4000-4999):
   4001  该举报已处理

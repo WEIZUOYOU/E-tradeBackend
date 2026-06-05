@@ -85,7 +85,36 @@ CREATE TABLE `address` (
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='地址表';
 
--- 6. 核心表：订单表 (已集成线下交易字段)
+-- 6. 核心表：交易表
+CREATE TABLE `trade` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '交易ID',
+    `trade_no` VARCHAR(32) UNIQUE NOT NULL COMMENT '交易编号',
+    `product_id` BIGINT NOT NULL COMMENT '商品ID',
+    `buyer_id` BIGINT NOT NULL COMMENT '买家ID',
+    `seller_id` BIGINT NOT NULL COMMENT '卖家ID',
+    `product_name` VARCHAR(100) COMMENT '商品名称',
+    `product_price` DECIMAL(10,2) COMMENT '商品价格',
+    `product_image` VARCHAR(255) COMMENT '商品图片',
+    `buyer_name` VARCHAR(50) COMMENT '买家名称',
+    `buyer_avatar` VARCHAR(255) COMMENT '买家头像',
+    `buyer_credit_score` INT COMMENT '买家信用分',
+    `buyer_is_auth` TINYINT COMMENT '买家认证状态',
+    `buyer_phone` VARCHAR(20) COMMENT '买家联系电话',
+    `seller_name` VARCHAR(50) COMMENT '卖家名称',
+    `seller_avatar` VARCHAR(255) COMMENT '卖家头像',
+    `seller_credit_score` INT COMMENT '卖家信用分',
+    `seller_is_auth` TINYINT COMMENT '卖家认证状态',
+    `seller_phone` VARCHAR(20) COMMENT '卖家联系电话',
+    `meeting_location` VARCHAR(200) COMMENT '面交地点',
+    `meeting_time` DATETIME COMMENT '交易时间',
+    `status` TINYINT DEFAULT 0 COMMENT '0-待卖家确认, 1-待交易, 4-已完成, 5-已取消',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    FOREIGN KEY (buyer_id) REFERENCES user(id),
+    FOREIGN KEY (seller_id) REFERENCES user(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='交易表';
+
+-- 7. 核心表：订单表 (已集成线下交易字段)
 CREATE TABLE `order` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `order_no` VARCHAR(32) UNIQUE NOT NULL,
@@ -97,16 +126,21 @@ CREATE TABLE `order` (
     `product_price` DECIMAL(10,2),
     `quantity` INT DEFAULT 1,
     `total_amount` DECIMAL(10,2),
-    `address_id` BIGINT DEFAULT NULL COMMENT '线下交易时可为空',  -- 修复为可为空
+    `address_id` BIGINT DEFAULT NULL COMMENT '线下交易时可为空',
     `trade_type` TINYINT DEFAULT 1 COMMENT '0-快递, 1-线下交易',
     `meeting_time` DATETIME COMMENT '线下约定时间',
     `meeting_location` VARCHAR(255) COMMENT '线下约定地点',
-    `status` TINYINT DEFAULT 0 COMMENT '0-待支付/确认, 1-已支付/交易中, 2-已发货/交付, 3-已完成, 4-已取消',
+    `contact_phone` VARCHAR(20) COMMENT '联系电话（卖家确认时填写）',
+    `status` TINYINT DEFAULT 0 COMMENT '0-待卖家确认, 1-交易中, 2-待买家确认, 3-待卖家确认完成, 4-已完成, 5-已取消',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `pay_time` DATETIME COMMENT '支付时间',
+    `deliver_time` DATETIME COMMENT '发货/交付时间',
+    `complete_time` DATETIME COMMENT '交易完成时间',
+    `cancel_time` DATETIME COMMENT '取消时间',
+    `remark` VARCHAR(500) COMMENT '订单备注',
     FOREIGN KEY (buyer_id) REFERENCES user(id),
     FOREIGN KEY (seller_id) REFERENCES user(id)
-    -- 移除了 product_id 和 address_id 的外键限制，真正实现“快照”解耦
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单表';
 
 -- 7. 互动表：购物车、收藏、消息、历史记录
@@ -133,9 +167,14 @@ CREATE TABLE `message` (
     `id` INT PRIMARY KEY AUTO_INCREMENT,
     `sender_id` BIGINT NOT NULL,
     `receiver_id` BIGINT NOT NULL,
+    `product_id` BIGINT COMMENT '关联商品ID（可选，方便溯源）',
     `content` TEXT NOT NULL,
+    `type` TINYINT DEFAULT 0 COMMENT '0-文本，1-交易卡片',
     `is_read` TINYINT DEFAULT 0,
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `trade_id` BIGINT COMMENT '交易ID',
+    `trade_status` INT COMMENT '交易状态',
+    `trade_data` TEXT COMMENT '交易数据JSON',
     FOREIGN KEY (sender_id) REFERENCES user(id) ON DELETE CASCADE,
     FOREIGN KEY (receiver_id) REFERENCES user(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -259,14 +298,14 @@ INSERT INTO `product` (`id`, `name`, `description`, `price`, `stock`, `sold_coun
 (3, '笔记本电脑', '联想小新Pro14 2023款，i7-13620H，16GB内存，512GB SSD，95新，保修期内', 4500.00, 1, 0, 58, 2, 3, '/uploads/2026-06-04/laptop.png', '/uploads/2026-06-04/laptop.png', 1, 1, '2026-06-03 09:00:00');
 
 -- 13. 插入测试聊天记录
-INSERT INTO `message` (`id`, `sender_id`, `receiver_id`, `content`, `is_read`, `create_time`) VALUES
-(1, 2, 1, '你好，请问这条半身裙是什么材质的？', 0, '2026-06-01 11:00:00'),
-(2, 1, 2, '您好，是棉质的，穿着很舒服', 1, '2026-06-01 11:05:00'),
-(3, 2, 1, '可以便宜一点吗？50块可以吗？', 0, '2026-06-01 11:10:00'),
-(4, 3, 2, '教材还在吗？我想要', 0, '2026-06-02 15:00:00'),
-(5, 2, 3, '还在的，你什么时候方便取？', 1, '2026-06-02 15:10:00'),
-(6, 1, 3, '笔记本电脑配置怎么样？', 0, '2026-06-03 10:00:00'),
-(7, 3, 1, '配置很高的，i7处理器，16G内存，日常使用完全没问题', 1, '2026-06-03 10:05:00');
+INSERT INTO `message` (`id`, `sender_id`, `receiver_id`, `product_id`, `content`, `type`, `is_read`, `create_time`) VALUES
+(1, 2, 1, 1, '你好，请问这条半身裙是什么材质的？', 0, 0, '2026-06-01 11:00:00'),
+(2, 1, 2, 1, '您好，是棉质的，穿着很舒服', 0, 1, '2026-06-01 11:05:00'),
+(3, 2, 1, 1, '可以便宜一点吗？50块可以吗？', 0, 0, '2026-06-01 11:10:00'),
+(4, 3, 2, 2, '教材还在吗？我想要', 0, 0, '2026-06-02 15:00:00'),
+(5, 2, 3, 2, '还在的，你什么时候方便取？', 0, 1, '2026-06-02 15:10:00'),
+(6, 1, 3, 3, '笔记本电脑配置怎么样？', 0, 0, '2026-06-03 10:00:00'),
+(7, 3, 1, 3, '配置很高的，i7处理器，16G内存，日常使用完全没问题', 0, 1, '2026-06-03 10:05:00');
 
 -- 14. 插入收藏记录
 INSERT INTO `favorite` (`user_id`, `product_id`, `create_time`) VALUES

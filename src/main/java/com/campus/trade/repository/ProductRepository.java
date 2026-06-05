@@ -81,6 +81,14 @@ public class ProductRepository {
         return jdbcTemplate.update(sql, quantity, productId, quantity);
     }
 
+    /**
+     * 恢复库存（取消订单时使用）
+     */
+    public int restoreStock(Long productId, Integer quantity) {
+        String sql = "UPDATE product SET stock = stock + ? WHERE id = ?";
+        return jdbcTemplate.update(sql, quantity, productId);
+    }
+
     public void incrementViewCount(Long productId) {
         String sql = "UPDATE product SET view_count = view_count + 1 WHERE id = ?";
         jdbcTemplate.update(sql, productId);

@@ -22,8 +22,9 @@ public class Order {
     private Integer tradeType; // 0-线上支付/快递，1-线下交易
     private LocalDateTime meetingTime; // 交易时间
     private String meetingLocation; // 交易地点
+    private String contactPhone; // 联系电话（卖家确认时填写）
 
-    private Integer status; // 0-待支付/确认, 1-已支付/交易中, 2-已发货/交付, 3-已完成, 4-已取消
+    private Integer status; // 0-待卖家确认, 1-交易中, 2-待买家确认, 3-待卖家确认完成, 4-已完成, 5-已取消
     private LocalDateTime createTime; // 创建时间
     private LocalDateTime payTime; // 支付时间
     private LocalDateTime deliverTime; // 发货/交付时间

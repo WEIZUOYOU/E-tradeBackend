@@ -39,39 +39,125 @@ public class OrderService {
         return orderRepository.findSellerOrders(sellerId, status);
     }
 
-    // 买家取消订单（仅限待确认状态）
+    // 买家取消订单（仅限待卖家确认状态）
     @Transactional
     public void cancelOrderByBuyer(Long orderId, Long buyerId) {
-        String sql = "UPDATE `order` SET status = 4 WHERE id = ? AND buyer_id = ? AND status = 0";
+        String sql = "UPDATE `order` SET status = 5 WHERE id = ? AND buyer_id = ? AND status = 0";
         int rows = jdbcTemplate.update(sql, orderId, buyerId);
         if (rows == 0)
-            throw new BusinessException("订单不可取消或无权操作");
+            throw new BusinessException("交易不可取消或无权操作");
     }
 
+    // 卖家确认交易（填写联系电话后确认）：0 -> 1
     @Transactional
-    public void confirmOrder(Long orderId, Long sellerId) {
-        // 卖家确认接单：0 -> 1
-        int rows = orderRepository.updateStatusWithAuth(orderId, 1, "seller_id", sellerId);
+    public void confirmTrade(Long tradeId, Long sellerId, String contactPhone) {
+        // 检查交易状态是否为待卖家确认
+        Order order = orderRepository.findById(tradeId);
+        if (order == null) {
+            throw new BusinessException(3004, "交易不存在");
+        }
+        if (!order.getSellerId().equals(sellerId)) {
+            throw new BusinessException(3005, "无操作权限");
+        }
+        if (order.getStatus() != 0) {
+            throw new BusinessException(3006, "交易状态不允许此操作");
+        }
+        
+        // 更新状态为交易中并保存联系电话
+        String sql = "UPDATE `order` SET status = 1, contact_phone = ? WHERE id = ? AND seller_id = ?";
+        int rows = jdbcTemplate.update(sql, contactPhone, tradeId, sellerId);
         if (rows == 0)
-            throw new BusinessException("订单确认失败，请检查状态");
+            throw new BusinessException("交易确认失败，请检查状态");
     }
 
+    // 修改交易信息（交易中状态可修改地点和时间）：1 -> 1
     @Transactional
-    public void deliverOrder(Long orderId, Long sellerId) {
-        // 卖家确认交付（线下已见面并交货）：1 -> 2
-        int rows = orderRepository.updateStatusWithAuth(orderId, 2, "seller_id", sellerId);
+    public void updateTrade(Long tradeId, Long userId, LocalDateTime meetingTime, String meetingLocation) {
+        Order order = orderRepository.findById(tradeId);
+        if (order == null) {
+            throw new BusinessException(3004, "交易不存在");
+        }
+        if (!order.getBuyerId().equals(userId) && !order.getSellerId().equals(userId)) {
+            throw new BusinessException(3005, "无操作权限");
+        }
+        if (order.getStatus() != 1) {
+            throw new BusinessException(3006, "只有交易中状态可以修改信息");
+        }
+        
+        // 更新交易时间和地点
+        String sql = "UPDATE `order` SET meeting_time = ?, meeting_location = ? WHERE id = ?";
+        int rows = jdbcTemplate.update(sql, meetingTime, meetingLocation, tradeId);
+        if (rows == 0)
+            throw new BusinessException("修改失败");
+    }
+
+    // 卖家标记交付：1 -> 2
+    @Transactional
+    public void markDelivered(Long tradeId, Long sellerId) {
+        Order order = orderRepository.findById(tradeId);
+        if (order == null) {
+            throw new BusinessException(3004, "交易不存在");
+        }
+        if (!order.getSellerId().equals(sellerId)) {
+            throw new BusinessException(3005, "无操作权限");
+        }
+        if (order.getStatus() != 1) {
+            throw new BusinessException(3006, "交易状态不允许此操作");
+        }
+        
+        int rows = orderRepository.updateStatusWithAuth(tradeId, 2, "seller_id", sellerId);
         if (rows == 0)
             throw new BusinessException("操作失败");
     }
 
+    // 买家确认收到：2 -> 3
     @Transactional
-    public void completeOrder(Long orderId, Long buyerId) {
-        // 买家确认收货：2 -> 3
-        int rows = orderRepository.updateStatusWithAuth(orderId, 3, "buyer_id", buyerId);
+    public void confirmReceive(Long tradeId, Long buyerId) {
+        Order order = orderRepository.findById(tradeId);
+        if (order == null) {
+            throw new BusinessException(3004, "交易不存在");
+        }
+        if (!order.getBuyerId().equals(buyerId)) {
+            throw new BusinessException(3005, "无操作权限");
+        }
+        if (order.getStatus() != 2) {
+            throw new BusinessException(3006, "交易状态不允许此操作");
+        }
+        
+        int rows = orderRepository.updateStatusWithAuth(tradeId, 3, "buyer_id", buyerId);
         if (rows == 0)
             throw new BusinessException("确认收货失败");
+    }
+
+    // 卖家确认完成：3 -> 4
+    @Transactional
+    public void confirmComplete(Long tradeId, Long sellerId) {
+        Order order = orderRepository.findById(tradeId);
+        if (order == null) {
+            throw new BusinessException(3004, "交易不存在");
+        }
+        if (!order.getSellerId().equals(sellerId)) {
+            throw new BusinessException(3005, "无操作权限");
+        }
+        if (order.getStatus() != 3) {
+            throw new BusinessException(3006, "交易状态不允许此操作");
+        }
+        
+        int rows = orderRepository.updateStatusWithAuth(tradeId, 4, "seller_id", sellerId);
+        if (rows == 0)
+            throw new BusinessException("确认完成失败");
 
         // 进阶逻辑：可以在此处更新卖家 credit_score 或 trade_count
+    }
+
+    // 获取我的交易列表（作为买家或卖家）
+    public List<OrderDetailResponse> getMyTrades(Long userId, Integer status) {
+        List<OrderDetailResponse> buyerOrders = orderRepository.findBuyerOrders(userId, status);
+        List<OrderDetailResponse> sellerOrders = orderRepository.findSellerOrders(userId, status);
+        
+        // 合并买家和卖家的订单
+        buyerOrders.addAll(sellerOrders);
+        return buyerOrders;
     }
 
     @Transactional
@@ -88,7 +174,7 @@ public class OrderService {
             throw new BusinessException("库存不足");
         }
         if (product.getSellerId().equals(buyerId)) {
-            throw new BusinessException("不能购买自己的商品");
+            throw new BusinessException(3001, "不能购买自己的商品");
         }
 
         // 2. 线下交易特有逻辑校验
@@ -101,7 +187,7 @@ public class OrderService {
         // 3. 扣减库存
         int rows = productRepository.deductStock(req.getProductId(), req.getQuantity());
         if (rows == 0) {
-            throw new BusinessException("系统繁忙，扣减库存失败");
+            throw new BusinessException(3002, "商品库存不足");
         }
 
         // 4. 计算总金额与生成订单

@@ -59,6 +59,14 @@ public class MessageService {
         msg.setProductId(req.getProductId());
         msg.setContent(req.getContent());
         msg.setType(req.getType());
+        
+        // 如果是交易卡片消息，设置交易相关字段
+        if (req.getType() == 1) {
+            msg.setTradeId(req.getTradeId());
+            msg.setTradeStatus(req.getTradeStatus());
+            msg.setTradeData(req.getTradeData());
+        }
+        
         messageRepository.insert(msg);
     }
 

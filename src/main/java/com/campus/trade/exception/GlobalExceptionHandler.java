@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
@@ -33,6 +34,14 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining("; "));
         log.warn("参数校验失败: {}", msg);
         return Result.error(ResultCode.BAD_REQUEST.getCode(), msg);
+    }
+
+    // 静态资源未找到
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Result<Void> handleNoResourceFoundException(NoResourceFoundException e) {
+        log.warn("资源未找到: {}", e.getResourcePath());
+        return Result.error(404, "请求的资源不存在: " + e.getResourcePath());
     }
 
     // 其他异常

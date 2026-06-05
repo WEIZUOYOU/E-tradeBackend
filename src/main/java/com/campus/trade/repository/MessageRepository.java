@@ -18,13 +18,16 @@ public class MessageRepository {
      * 插入消息记录
      */
     public int insert(Message msg) {
-        String sql = "INSERT INTO message (sender_id, receiver_id, product_id, content, type, is_read) VALUES (?, ?, ?, ?, ?, 0)";
+        String sql = "INSERT INTO message (sender_id, receiver_id, product_id, content, type, is_read, trade_id, trade_status, trade_data) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)";
         return jdbcTemplate.update(sql, 
                 msg.getSenderId(), 
                 msg.getReceiverId(), 
                 msg.getProductId(), 
                 msg.getContent(), 
-                msg.getType());
+                msg.getType(),
+                msg.getTradeId(),
+                msg.getTradeStatus(),
+                msg.getTradeData());
     }
 
     /**
