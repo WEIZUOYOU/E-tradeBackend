@@ -31,7 +31,7 @@ public class MessageController {
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
-        messageService.sendMessage(userId.intValue(), req);
+        messageService.sendMessage(userId, req);
         return Result.success();
     }
 

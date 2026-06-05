@@ -33,7 +33,7 @@ public class MessageRepository {
     /**
      * 获取两个用户之间的聊天记录（按时间升序）
      */
-    public List<Message> findChatHistory(Integer userA, Integer userB) {
+    public List<Message> findChatHistory(Long userA, Long userB) {
         String sql = "SELECT * FROM message WHERE (sender_id = ? AND receiver_id = ?) " +
                      "OR (sender_id = ? AND receiver_id = ?) ORDER BY create_time ASC";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Message.class), userA, userB, userB, userA);
@@ -42,7 +42,7 @@ public class MessageRepository {
     /**
      * 将未读消息标为已读
      */
-    public void markAsRead(Integer readerId, Integer senderId) {
+    public void markAsRead(Long readerId, Long senderId) {
         String sql = "UPDATE message SET is_read = 1 WHERE receiver_id = ? AND sender_id = ? AND is_read = 0";
         jdbcTemplate.update(sql, readerId, senderId);
     }

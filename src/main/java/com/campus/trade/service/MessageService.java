@@ -31,14 +31,14 @@ public class MessageService {
     /**
      * 发送消息逻辑
      */
-    public void sendMessage(Integer senderId, SendMessageRequest req) {
+    public void sendMessage(Long senderId, SendMessageRequest req) {
         // 验证：不能给自己发消息
         if (senderId.equals(req.getReceiverId())) {
             throw new com.campus.trade.exception.BusinessException(7001, "不能给自己发消息");
         }
         
         // 验证：接收者不存在
-        User receiver = userRepository.findById(req.getReceiverId().longValue());
+        User receiver = userRepository.findById(req.getReceiverId());
         if (receiver == null) {
             throw new com.campus.trade.exception.BusinessException(7004, "接收者不存在");
         }
@@ -76,9 +76,9 @@ public class MessageService {
     @Transactional
     public List<Message> getHistory(Long userId, Long targetUserId) {
         // 1. 获取记录
-        List<Message> history = messageRepository.findChatHistory(userId.intValue(), targetUserId.intValue());
+        List<Message> history = messageRepository.findChatHistory(userId, targetUserId);
         // 2. 标记对方发给我的消息为已读
-        messageRepository.markAsRead(userId.intValue(), targetUserId.intValue());
+        messageRepository.markAsRead(userId, targetUserId);
         return history;
     }
 
@@ -91,9 +91,9 @@ public class MessageService {
         
         for (Message msg : sessions) {
             // 确定对方用户ID
-            Long targetUserId = msg.getSenderId().longValue();
+            Long targetUserId = msg.getSenderId();
             if (targetUserId.equals(userId)) {
-                targetUserId = msg.getReceiverId().longValue();
+                targetUserId = msg.getReceiverId();
             }
             
             User targetUser = userRepository.findById(targetUserId);
@@ -102,7 +102,7 @@ public class MessageService {
             // 获取商品信息
             String productName = null;
             if (msg.getProductId() != null) {
-                Product product = productRepository.findById(msg.getProductId().longValue());
+                Product product = productRepository.findById(msg.getProductId());
                 if (product != null) {
                     productName = product.getName();
                 }
@@ -118,7 +118,7 @@ public class MessageService {
             response.setLastMessage(msg.getContent());
             response.setLastMessageTime(msg.getCreateTime());
             response.setUnreadCount(unreadCount);
-            response.setProductId(msg.getProductId() != null ? msg.getProductId().longValue() : null);
+            response.setProductId(msg.getProductId());
             response.setProductName(productName);
             
             responses.add(response);

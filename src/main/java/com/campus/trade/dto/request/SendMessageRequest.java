@@ -7,9 +7,9 @@ import lombok.Data;
 @Data
 public class SendMessageRequest {
     @NotNull(message = "接收者不能为空")
-    private Integer receiverId;
+    private Long receiverId;      // 改为Long，与User.id类型一致
 
-    private Integer productId; // 可以为空
+    private Long productId;       // 改为Long，与Product.id类型一致
 
     @NotBlank(message = "消息内容不能为空")
     private String content;

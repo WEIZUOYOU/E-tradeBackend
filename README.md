@@ -50,7 +50,7 @@ file:
 ```bash
 # 更新数据库
 USE E_tradeDB;
-source D:/E-tradeBackend/docs/schema.sql;
+source D:/E-tradeBackend/docs/schema.sql; # 执行数据库初始化脚本
 
 # 运行项目
 mvn spring-boot:run

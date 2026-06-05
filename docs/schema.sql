@@ -164,7 +164,7 @@ CREATE TABLE `favorite` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `message` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `sender_id` BIGINT NOT NULL,
     `receiver_id` BIGINT NOT NULL,
     `product_id` BIGINT COMMENT '关联商品ID（可选，方便溯源）',

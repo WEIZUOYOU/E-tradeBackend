@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpSession;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +47,25 @@ public class TradeController {
         if (meetingTimeObj == null) {
             return Result.error(1001, "交易时间不能为空");
         }
-        LocalDateTime meetingTime = (LocalDateTime) meetingTimeObj;
+        
+        // 处理字符串格式的时间，支持多种格式
+        LocalDateTime meetingTime;
+        if (meetingTimeObj instanceof LocalDateTime) {
+            meetingTime = (LocalDateTime) meetingTimeObj;
+        } else {
+            String meetingTimeStr = String.valueOf(meetingTimeObj);
+            try {
+                // 尝试 ISO_LOCAL_DATE_TIME 格式（如 2026-06-05T10:30:00）
+                meetingTime = LocalDateTime.parse(meetingTimeStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            } catch (Exception e) {
+                try {
+                    // 尝试带时区的格式（如 2026-06-05T10:30:00+08:00）
+                    meetingTime = LocalDateTime.parse(meetingTimeStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+                } catch (Exception e2) {
+                    return Result.error(1001, "交易时间格式错误，请使用 ISO 8601 格式（如 2026-06-05T10:30:00）");
+                }
+            }
+        }
 
         Trade trade = tradeService.createTrade(userId, productId, meetingLocation, meetingTime);
 
@@ -122,7 +141,25 @@ public class TradeController {
         if (meetingTimeObj == null) {
             return Result.error(1001, "交易时间不能为空");
         }
-        LocalDateTime meetingTime = (LocalDateTime) meetingTimeObj;
+        
+        // 处理字符串格式的时间，支持多种格式
+        LocalDateTime meetingTime;
+        if (meetingTimeObj instanceof LocalDateTime) {
+            meetingTime = (LocalDateTime) meetingTimeObj;
+        } else {
+            String meetingTimeStr = String.valueOf(meetingTimeObj);
+            try {
+                // 尝试 ISO_LOCAL_DATE_TIME 格式（如 2026-06-05T10:30:00）
+                meetingTime = LocalDateTime.parse(meetingTimeStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            } catch (Exception e) {
+                try {
+                    // 尝试带时区的格式（如 2026-06-05T10:30:00+08:00）
+                    meetingTime = LocalDateTime.parse(meetingTimeStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+                } catch (Exception e2) {
+                    return Result.error(1001, "交易时间格式错误，请使用 ISO 8601 格式（如 2026-06-05T10:30:00）");
+                }
+            }
+        }
 
         tradeService.updateTrade(tradeId, userId, meetingLocation, meetingTime);
         return Result.success();
