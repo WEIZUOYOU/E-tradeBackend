@@ -1,5 +1,13 @@
 server:
   port: 8080
+  address: 0.0.0.0
+  servlet:
+    session:
+      timeout: 86400s  # Session 超时时间设置为1天
+      cookie:
+        max-age: 86400s  # Cookie 有效期设置为1天
+        http-only: true  # 防止 XSS 攻击
+        same-site: Lax   # 允许跨站请求携带 Cookie
 
 spring:
   datasource:
@@ -13,6 +21,9 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 50MB # 建议 request 稍微大一点，因为多图上传总和会超过 10MB
+
+  session:
+    store-type: servlet  # 使用 servlet 容器的 session 存储
 
 # 自定义配置
 file:

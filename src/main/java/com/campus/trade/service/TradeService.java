@@ -246,36 +246,89 @@ public class TradeService {
     }
 
     /**
-     * 完成交易
-     * 业务流程：
-     * 1. 校验交易存在
-     * 2. 校验操作权限（仅买家和卖家可完成）
-     * 3. 校验交易状态（仅待交易状态可完成）
-     * 4. 更新状态为已完成
+     * 完成交易（支持状态流转）
+     * 
+     * 状态转换规则：
+     * - 状态 1 (待交易) + SELLER → 状态 2 (卖家已确认)
+     * - 状态 1 (待交易) + BUYER → 状态 3 (买家已确认)
+     * - 状态 2 (卖家已确认) + BUYER → 状态 5 (已完成)
+     * - 状态 3 (买家已确认) + SELLER → 状态 5 (已完成)
+     * 
+     * @param tradeId 交易ID
+     * @param userId 当前用户ID
+     * @param operatorType 操作方类型：SELLER 或 BUYER
+     * @return 新状态值
      */
     @Transactional(rollbackFor = Exception.class)
-    public void completeTrade(Long tradeId, Long userId) {
+    public int completeTrade(Long tradeId, Long userId, String operatorType) {
         // 1. 校验交易存在
         Trade trade = tradeRepository.findById(tradeId);
         if (trade == null) {
             throw new BusinessException(3004, "交易不存在");
         }
+        
         // 2. 校验操作权限
         boolean isBuyer = trade.getBuyerId().equals(userId);
         boolean isSeller = trade.getSellerId().equals(userId);
         if (!isBuyer && !isSeller) {
-            throw new BusinessException(3005, "仅交易双方可完成交易");
+            throw new BusinessException(3005, "仅交易双方可操作交易");
         }
-        // 3. 校验交易状态
-        if (trade.getStatus() == null || trade.getStatus() != 1) {
-            throw new BusinessException(3006, "仅待交易状态可完成交易");
+        
+        // 3. 校验操作方类型与实际身份一致
+        if ("SELLER".equals(operatorType) && !isSeller) {
+            throw new BusinessException(3005, "您不是该交易的卖家");
         }
-        // 4. 更新状态
-        int rows = tradeRepository.completeTrade(tradeId, userId);
+        if ("BUYER".equals(operatorType) && !isBuyer) {
+            throw new BusinessException(3005, "您不是该交易的买家");
+        }
+        
+        // 4. 获取当前状态并计算新状态
+        Integer currentStatus = trade.getStatus();
+        if (currentStatus == null) {
+            throw new BusinessException(3006, "交易状态异常");
+        }
+        
+        int newStatus;
+        switch (currentStatus) {
+            case 1: // 待交易
+                if ("SELLER".equals(operatorType)) {
+                    newStatus = 2; // 卖家已确认
+                } else {
+                    newStatus = 3; // 买家已确认
+                }
+                break;
+            case 2: // 卖家已确认
+                if ("BUYER".equals(operatorType)) {
+                    newStatus = 5; // 已完成
+                } else {
+                    throw new BusinessException(3006, "卖家已确认，等待买家确认完成");
+                }
+                break;
+            case 3: // 买家已确认
+                if ("SELLER".equals(operatorType)) {
+                    newStatus = 5; // 已完成
+                } else {
+                    throw new BusinessException(3006, "买家已确认，等待卖家确认完成");
+                }
+                break;
+            default:
+                throw new BusinessException(3006, "当前状态不允许此操作");
+        }
+        
+        // 5. 更新状态
+        int rows = tradeRepository.updateStatus(tradeId, newStatus);
         if (rows == 0) {
-            throw new BusinessException(3006, "完成交易失败，请刷新后重试");
+            throw new BusinessException(3006, "操作失败，请刷新后重试");
         }
-        log.info("完成交易: tradeId={}, operatorId={}", tradeId, userId);
+        
+        // 6. 如果交易完成，更新商品状态为已售出
+        if (newStatus == 5) {
+            productRepository.updateStatus(trade.getProductId(), 3); // 3-已售出
+            log.info("交易完成，商品已售出: tradeId={}, productId={}", tradeId, trade.getProductId());
+        }
+        
+        log.info("交易状态流转: tradeId={}, {} {} -> {}", tradeId, operatorType, currentStatus, newStatus);
+        return newStatus;
     }
 
     /**

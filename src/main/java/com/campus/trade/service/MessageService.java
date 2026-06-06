@@ -73,12 +73,15 @@ public class MessageService {
     /**
      * 获取聊天历史并自动标记为已读
      */
-    @Transactional
     public List<Message> getHistory(Long userId, Long targetUserId) {
-        // 1. 获取记录
+        // 1. 获取记录（先获取，确保数据可见）
         List<Message> history = messageRepository.findChatHistory(userId, targetUserId);
-        // 2. 标记对方发给我的消息为已读
-        messageRepository.markAsRead(userId, targetUserId);
+        
+        // 2. 标记对方发给我的消息为已读（在获取之后单独执行，避免事务问题）
+        if (!history.isEmpty()) {
+            messageRepository.markAsRead(userId, targetUserId);
+        }
+        
         return history;
     }
 

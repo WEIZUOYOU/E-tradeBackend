@@ -27,6 +27,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true) // 允许携带 Cookie
+                .exposedHeaders("Set-Cookie") // 暴露 Set-Cookie 头给前端
                 .maxAge(3600);
     }
 
@@ -35,14 +36,32 @@ public class WebConfig implements WebMvcConfigurer {
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 自动修正路径格式：确保以 "file:" 开头且以 "/" 结尾
-        String location = uploadDir.startsWith("file:") ? uploadDir : "file:" + uploadDir;
+        // 处理 Windows 和 Linux 路径差异，统一转换为正斜杠格式
+        String normalizedPath = uploadDir.replace("\\", "/");
+        
+        // 构建正确的 file: URI 格式
+        String location;
+        if (normalizedPath.startsWith("file:")) {
+            location = normalizedPath;
+        } else {
+            // Windows: d:/path/to/uploads -> file:/d:/path/to/uploads
+            // Linux: /path/to/uploads -> file:/path/to/uploads
+            location = "file:/" + normalizedPath;
+        }
+        
+        // 确保路径以 / 结尾
         if (!location.endsWith("/")) {
             location += "/";
         }
         
+        System.out.println("=== 静态资源映射配置 ===");
+        System.out.println("原始路径: " + uploadDir);
+        System.out.println("资源映射: /uploads/** -> " + location);
+        
+        // 添加静态资源映射
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations(location);
+                .addResourceLocations(location)
+                .setCachePeriod(31536000); // 1年缓存
     }
 
     /**
@@ -57,7 +76,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/user/register",
                         "/api/product/list",
                         "/api/product/detail/**",
-                        "/api/category/list" // 补充：分类列表通常也应该是公开的
+                        "/api/category/list",
+                        "/uploads/**"  // 排除静态资源路径
                 );
     }
 }

@@ -187,11 +187,17 @@ public class TradeController {
     }
 
     /**
-     * 完成交易
+     * 完成交易（支持状态流转）
      * POST /api/trade/complete
+     * 
+     * 状态转换规则：
+     * - 状态 1 (待交易) + SELLER → 状态 2 (卖家已确认)
+     * - 状态 1 (待交易) + BUYER → 状态 3 (买家已确认)
+     * - 状态 2 (卖家已确认) + BUYER → 状态 5 (已完成)
+     * - 状态 3 (买家已确认) + SELLER → 状态 5 (已完成)
      */
     @PostMapping("/complete")
-    public Result<Void> completeTrade(@RequestBody Map<String, Object> request, HttpSession session) {
+    public Result<Map<String, Object>> completeTrade(@RequestBody Map<String, Object> request, HttpSession session) {
         Long userId = getCurrentUserId(session);
         if (userId == null) {
             return Result.error(401, "请先登录");
@@ -203,8 +209,16 @@ public class TradeController {
         }
         Long tradeId = ((Number) tradeIdObj).longValue();
 
-        tradeService.completeTrade(tradeId, userId);
-        return Result.success();
+        String operatorType = (String) request.get("operatorType");
+        if (operatorType == null || operatorType.trim().isEmpty()) {
+            return Result.error(1001, "操作方类型不能为空");
+        }
+
+        int newStatus = tradeService.completeTrade(tradeId, userId, operatorType);
+        
+        Map<String, Object> data = new HashMap<>();
+        data.put("tradeStatus", newStatus);
+        return Result.success(data);
     }
 
     /**

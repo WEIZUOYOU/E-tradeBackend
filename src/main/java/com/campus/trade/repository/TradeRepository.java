@@ -98,6 +98,14 @@ public class TradeRepository {
     }
 
     /**
+     * 更新交易状态
+     */
+    public int updateStatus(Long tradeId, int status) {
+        String sql = "UPDATE trade SET status = ?, update_time = NOW() WHERE id = ?";
+        return jdbcTemplate.update(sql, status, tradeId);
+    }
+
+    /**
      * 完成交易
      */
     public int completeTrade(Long tradeId, Long userId) {
