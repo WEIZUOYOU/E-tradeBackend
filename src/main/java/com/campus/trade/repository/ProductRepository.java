@@ -104,6 +104,27 @@ public class ProductRepository {
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Product.class), sellerId);
     }
 
+    /**
+     * 查询当前用户的商品（按状态筛选）
+     * @param sellerId 卖家ID
+     * @param status 商品状态：1-上架中（active），3-已售罄（sold_out）
+     */
+    public List<Product> findBySellerIdAndStatus(Long sellerId, Integer status) {
+        String sql = "SELECT p.*, u.username AS seller_name, u.avatar AS seller_avatar, u.is_auth AS seller_is_auth, c.name AS category_name " +
+                     "FROM product p " +
+                     "LEFT JOIN user u ON p.seller_id = u.id " +
+                     "LEFT JOIN category c ON p.category_id = c.id " +
+                     "WHERE p.seller_id = ?";
+        
+        if (status != null) {
+            sql += " AND p.status = ?";
+            return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Product.class), sellerId, status);
+        } else {
+            sql += " ORDER BY p.create_time DESC";
+            return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Product.class), sellerId);
+        }
+    }
+
     // 更新商品信息
     public int updateProduct(Product product) {
         String sql = "UPDATE product SET name=?, category_id=?, price=?, stock=?, description=?, images=?, status=? WHERE id=? AND seller_id=?";

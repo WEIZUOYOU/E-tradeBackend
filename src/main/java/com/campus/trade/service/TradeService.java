@@ -7,6 +7,8 @@ import com.campus.trade.exception.BusinessException;
 import com.campus.trade.repository.TradeRepository;
 import com.campus.trade.repository.ProductRepository;
 import com.campus.trade.repository.UserRepository;
+import com.campus.trade.dto.request.SendMessageRequest;
+import com.campus.trade.websocket.MessageWebSocketHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +33,12 @@ public class TradeService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private MessageService messageService;
+
+    @Autowired
+    private MessageWebSocketHandler messageWebSocketHandler;
 
     /**
      * 创建交易（买家发起）
@@ -123,7 +131,7 @@ public class TradeService {
      * 4. 更新卖家电话和状态
      */
     @Transactional(rollbackFor = Exception.class)
-    public void confirmTrade(Long tradeId, Long sellerId, String sellerPhone) {
+    public int confirmTrade(Long tradeId, Long sellerId, String sellerPhone) {
         // 1. 校验交易存在
         Trade trade = tradeRepository.findById(tradeId);
         if (trade == null) {
@@ -146,7 +154,19 @@ public class TradeService {
         if (rows == 0) {
             throw new BusinessException(3006, "交易确认失败，请刷新后重试");
         }
-        log.info("卖家确认交易成功: tradeId={}, sellerId={}", tradeId, sellerId);
+        
+        // 6. 推送交易卡片消息给买家
+        SendMessageRequest msgReq = new SendMessageRequest();
+        msgReq.setReceiverId(trade.getBuyerId());
+        msgReq.setProductId(trade.getProductId());
+        msgReq.setType(1); // 交易卡片消息
+        msgReq.setTradeId(tradeId);
+        msgReq.setTradeStatus(1); // 待交易
+        msgReq.setContent("卖家已确认交易，请查看交易详情");
+        messageService.sendMessage(sellerId, msgReq);
+        
+        log.info("卖家确认交易成功: tradeId={}, sellerId={}, 已推送消息给买家 buyerId={}", tradeId, sellerId, trade.getBuyerId());
+        return 1; // 返回新状态：待交易
     }
 
     /**
@@ -251,8 +271,8 @@ public class TradeService {
      * 状态转换规则：
      * - 状态 1 (待交易) + SELLER → 状态 2 (卖家已确认)
      * - 状态 1 (待交易) + BUYER → 状态 3 (买家已确认)
-     * - 状态 2 (卖家已确认) + BUYER → 状态 5 (已完成)
-     * - 状态 3 (买家已确认) + SELLER → 状态 5 (已完成)
+     * - 状态 2 (卖家已确认) + BUYER → 状态 4 (已完成)
+     * - 状态 3 (买家已确认) + SELLER → 状态 4 (已完成)
      * 
      * @param tradeId 交易ID
      * @param userId 当前用户ID
@@ -290,6 +310,8 @@ public class TradeService {
         
         int newStatus;
         switch (currentStatus) {
+            case 0: // 待卖家确认
+                throw new BusinessException(3006, "请先完成卖家确认，再进行交易确认");
             case 1: // 待交易
                 if ("SELLER".equals(operatorType)) {
                     newStatus = 2; // 卖家已确认
@@ -299,18 +321,22 @@ public class TradeService {
                 break;
             case 2: // 卖家已确认
                 if ("BUYER".equals(operatorType)) {
-                    newStatus = 5; // 已完成
+                    newStatus = 4; // 已完成
                 } else {
                     throw new BusinessException(3006, "卖家已确认，等待买家确认完成");
                 }
                 break;
             case 3: // 买家已确认
                 if ("SELLER".equals(operatorType)) {
-                    newStatus = 5; // 已完成
+                    newStatus = 4; // 已完成
                 } else {
                     throw new BusinessException(3006, "买家已确认，等待卖家确认完成");
                 }
                 break;
+            case 4: // 已完成
+                throw new BusinessException(3006, "交易已完成，无需重复确认");
+            case 5: // 已取消
+                throw new BusinessException(3006, "交易已取消，无法确认");
             default:
                 throw new BusinessException(3006, "当前状态不允许此操作");
         }
@@ -321,13 +347,35 @@ public class TradeService {
             throw new BusinessException(3006, "操作失败，请刷新后重试");
         }
         
-        // 6. 如果交易完成，更新商品状态为已售出
-        if (newStatus == 5) {
+        // 6. 推送交易卡片消息给另一方
+        Long receiverId = "SELLER".equals(operatorType) ? trade.getBuyerId() : trade.getSellerId();
+        String content;
+        if (newStatus == 2) {
+            content = "卖家已确认完成交易，请确认完成";
+        } else if (newStatus == 3) {
+            content = "买家已确认完成交易，请确认完成";
+        } else if (newStatus == 4) {
+            content = "交易已完成";
+        } else {
+            content = "交易状态已更新";
+        }
+        
+        SendMessageRequest msgReq = new SendMessageRequest();
+        msgReq.setReceiverId(receiverId);
+        msgReq.setProductId(trade.getProductId());
+        msgReq.setType(1); // 交易卡片消息
+        msgReq.setTradeId(tradeId);
+        msgReq.setTradeStatus(newStatus);
+        msgReq.setContent(content);
+        messageService.sendMessage(userId, msgReq);
+        
+        // 7. 如果交易完成，更新商品状态为已售出
+        if (newStatus == 4) {
             productRepository.updateStatus(trade.getProductId(), 3); // 3-已售出
             log.info("交易完成，商品已售出: tradeId={}, productId={}", tradeId, trade.getProductId());
         }
         
-        log.info("交易状态流转: tradeId={}, {} {} -> {}", tradeId, operatorType, currentStatus, newStatus);
+        log.info("交易状态流转: tradeId={}, {} {} -> {}, 已推送消息给 receiverId={}", tradeId, operatorType, currentStatus, newStatus, receiverId);
         return newStatus;
     }
 
@@ -341,7 +389,7 @@ public class TradeService {
      * 5. 更新状态为已取消
      */
     @Transactional(rollbackFor = Exception.class)
-    public void cancelTrade(Long tradeId, Long userId) {
+    public int cancelTrade(Long tradeId, Long userId) {
         // 1. 校验交易存在
         Trade trade = tradeRepository.findById(tradeId);
         if (trade == null) {
@@ -367,7 +415,20 @@ public class TradeService {
         if (rows == 0) {
             throw new BusinessException(3006, "取消交易失败，请刷新后重试");
         }
-        log.info("取消交易: tradeId={}, operatorId={}", tradeId, userId);
+        
+        // 6. 推送交易卡片消息给另一方
+        Long receiverId = isBuyer ? trade.getSellerId() : trade.getBuyerId();
+        SendMessageRequest msgReq = new SendMessageRequest();
+        msgReq.setReceiverId(receiverId);
+        msgReq.setProductId(trade.getProductId());
+        msgReq.setType(1); // 交易卡片消息
+        msgReq.setTradeId(tradeId);
+        msgReq.setTradeStatus(5); // 已取消
+        msgReq.setContent("交易已取消");
+        messageService.sendMessage(userId, msgReq);
+        
+        log.info("取消交易: tradeId={}, operatorId={}, 已推送消息给 receiverId={}", tradeId, userId, receiverId);
+        return 5; // 返回新状态：已取消
     }
 
     /**
@@ -385,6 +446,40 @@ public class TradeService {
             size = 100;
         }
         return tradeRepository.findMyTrades(userId, status, page, size);
+    }
+
+    /**
+     * 获取进行中的交易列表（状态0、1、2、3）
+     */
+    public List<Trade> getActiveTrades(Long userId, int page, int size) {
+        // 参数校验
+        if (page < 1) {
+            page = 1;
+        }
+        if (size < 1) {
+            size = 10;
+        }
+        if (size > 100) {
+            size = 100;
+        }
+        return tradeRepository.findActiveTrades(userId, page, size);
+    }
+
+    /**
+     * 获取已完成的交易列表（状态4、5）
+     */
+    public List<Trade> getCompletedTrades(Long userId, int page, int size) {
+        // 参数校验
+        if (page < 1) {
+            page = 1;
+        }
+        if (size < 1) {
+            size = 10;
+        }
+        if (size > 100) {
+            size = 100;
+        }
+        return tradeRepository.findCompletedTrades(userId, page, size);
     }
 
     /**

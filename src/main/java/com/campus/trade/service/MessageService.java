@@ -3,12 +3,16 @@ package com.campus.trade.service;
 import com.campus.trade.dto.request.SendMessageRequest;
 import com.campus.trade.dto.response.MessageSessionResponse;
 import com.campus.trade.dto.response.MessageUnreadCountResponse;
+import com.campus.trade.dto.websocket.WebSocketMessage;
 import com.campus.trade.entity.Message;
 import com.campus.trade.entity.Product;
 import com.campus.trade.entity.User;
 import com.campus.trade.repository.MessageRepository;
 import com.campus.trade.repository.ProductRepository;
 import com.campus.trade.repository.UserRepository;
+import com.campus.trade.websocket.MessageWebSocketHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +23,8 @@ import java.util.List;
 @Service
 public class MessageService {
 
+    private static final Logger log = LoggerFactory.getLogger(MessageService.class);
+
     @Autowired
     private MessageRepository messageRepository;
 
@@ -28,9 +34,13 @@ public class MessageService {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private MessageWebSocketHandler messageWebSocketHandler;
+
     /**
      * 发送消息逻辑
      */
+    @Transactional
     public void sendMessage(Long senderId, SendMessageRequest req) {
         // 验证：不能给自己发消息
         if (senderId.equals(req.getReceiverId())) {
@@ -67,7 +77,32 @@ public class MessageService {
             msg.setTradeData(req.getTradeData());
         }
         
-        messageRepository.insert(msg);
+        Long messageId = messageRepository.insert(msg);
+        
+        // 查询完整的消息记录（包含 createTime）
+        Message savedMsg = messageRepository.findById(messageId);
+        if (savedMsg == null) {
+            log.warn("消息保存后查询失败: messageId={}", messageId);
+            return;
+        }
+        
+        // 通过 WebSocket 实时推送
+        WebSocketMessage wsMessage = new WebSocketMessage();
+        wsMessage.setType("new_message");
+        wsMessage.setId(savedMsg.getId());
+        wsMessage.setSenderId(savedMsg.getSenderId());
+        wsMessage.setReceiverId(savedMsg.getReceiverId());
+        wsMessage.setProductId(savedMsg.getProductId());
+        wsMessage.setContent(savedMsg.getContent());
+        wsMessage.setMessageType(savedMsg.getType());
+        wsMessage.setIsRead(savedMsg.getIsRead());
+        wsMessage.setCreateTime(savedMsg.getCreateTime());
+        wsMessage.setTradeStatus(savedMsg.getTradeStatus());
+        wsMessage.setTradeData(savedMsg.getTradeData());
+        wsMessage.setTradeId(savedMsg.getTradeId());
+        
+        boolean sent = messageWebSocketHandler.sendMessage(req.getReceiverId(), wsMessage);
+        log.info("消息发送: senderId={}, receiverId={}, webSocketSent={}", senderId, req.getReceiverId(), sent);
     }
 
     /**

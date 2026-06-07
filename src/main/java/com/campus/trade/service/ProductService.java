@@ -97,6 +97,21 @@ public class ProductService {
         return productRepository.findBySellerId(userId);
     }
 
+    /**
+     * 我的商品（按状态筛选）
+     * @param userId 用户ID
+     * @param status 状态：active（上架中，状态1），sold_out（已售罄，状态3）
+     */
+    public List<Product> myProducts(Long userId, String status) {
+        Integer statusCode = null;
+        if ("active".equals(status)) {
+            statusCode = 1; // 上架中
+        } else if ("sold_out".equals(status)) {
+            statusCode = 3; // 已售罄
+        }
+        return productRepository.findBySellerIdAndStatus(userId, statusCode);
+    }
+
     // 更新商品
     public void updateProduct(Long userId, Long productId, PublishProductRequest req) {
 

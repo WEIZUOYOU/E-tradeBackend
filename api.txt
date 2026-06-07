@@ -325,8 +325,8 @@ Product对象结构:
       "tradeId":     1,              // 交易ID，必填
       "sellerPhone": "13800138000"   // 卖家联系电话，必填
     }
-    返回: { "code": 200, "msg": "成功", "data": null }
-    说明: 卖家填写联系电话后确认交易，状态变为1(待交易)
+    返回: { "code": 200, "msg": "成功", "data": { "tradeStatus": 1 } }
+    说明: 卖家填写联系电话后确认交易，状态从0(待卖家确认)变为1(待交易)
 
 26. 交易详情
     GET /api/trade/detail/{tradeId}

@@ -81,7 +81,7 @@ public class TradeController {
      * POST /api/trade/confirm
      */
     @PostMapping("/confirm")
-    public Result<Void> confirmTrade(@RequestBody Map<String, Object> request, HttpSession session) {
+    public Result<Map<String, Object>> confirmTrade(@RequestBody Map<String, Object> request, HttpSession session) {
         Long userId = getCurrentUserId(session);
         if (userId == null) {
             return Result.error(401, "请先登录");
@@ -98,8 +98,12 @@ public class TradeController {
             return Result.error(1001, "卖家联系电话不能为空");
         }
 
-        tradeService.confirmTrade(tradeId, userId, sellerPhone);
-        return Result.success();
+        int newStatus = tradeService.confirmTrade(tradeId, userId, sellerPhone);
+        
+        // 返回更新后的状态
+        Map<String, Object> data = new HashMap<>();
+        data.put("tradeStatus", newStatus);
+        return Result.success(data);
     }
 
     /**
@@ -226,7 +230,7 @@ public class TradeController {
      * POST /api/trade/cancel
      */
     @PostMapping("/cancel")
-    public Result<Void> cancelTrade(@RequestBody Map<String, Object> request, HttpSession session) {
+    public Result<Map<String, Object>> cancelTrade(@RequestBody Map<String, Object> request, HttpSession session) {
         Long userId = getCurrentUserId(session);
         if (userId == null) {
             return Result.error(401, "请先登录");
@@ -238,8 +242,12 @@ public class TradeController {
         }
         Long tradeId = ((Number) tradeIdObj).longValue();
 
-        tradeService.cancelTrade(tradeId, userId);
-        return Result.success();
+        int newStatus = tradeService.cancelTrade(tradeId, userId);
+        
+        // 返回更新后的状态
+        Map<String, Object> data = new HashMap<>();
+        data.put("tradeStatus", newStatus);
+        return Result.success(data);
     }
 
     /**
@@ -269,6 +277,76 @@ public class TradeController {
         }
 
         List<Trade> trades = tradeService.getMyTrades(userId, status, page, size);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("list", trades);
+        data.put("page", page);
+        data.put("size", size);
+        return Result.success(data);
+    }
+
+    /**
+     * 获取进行中的订单
+     * GET /api/trade/active?page=1&size=10
+     * 返回状态为0、1、2、3的订单
+     */
+    @GetMapping("/active")
+    public Result<Map<String, Object>> getActiveTrades(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            HttpSession session) {
+        Long userId = getCurrentUserId(session);
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+
+        // 参数边界处理
+        if (page < 1) {
+            page = 1;
+        }
+        if (size < 1) {
+            size = 10;
+        }
+        if (size > 100) {
+            size = 100;
+        }
+
+        List<Trade> trades = tradeService.getActiveTrades(userId, page, size);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("list", trades);
+        data.put("page", page);
+        data.put("size", size);
+        return Result.success(data);
+    }
+
+    /**
+     * 获取已完成的订单
+     * GET /api/trade/completed?page=1&size=10
+     * 返回状态为4（已完成）、5（已取消）的订单
+     */
+    @GetMapping("/completed")
+    public Result<Map<String, Object>> getCompletedTrades(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            HttpSession session) {
+        Long userId = getCurrentUserId(session);
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+
+        // 参数边界处理
+        if (page < 1) {
+            page = 1;
+        }
+        if (size < 1) {
+            size = 10;
+        }
+        if (size > 100) {
+            size = 100;
+        }
+
+        List<Trade> trades = tradeService.getCompletedTrades(userId, page, size);
 
         Map<String, Object> data = new HashMap<>();
         data.put("list", trades);

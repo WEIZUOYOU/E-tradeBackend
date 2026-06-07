@@ -62,12 +62,21 @@ public class ProductController {
 
     // 我的商品
     @GetMapping("/my")
-    public Result<List<Product>> myProducts(HttpSession session) {
+    public Result<List<Product>> myProducts(
+            @RequestParam(required = false) String status,
+            HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
-        return Result.success(productService.myProducts(userId));
+        
+        List<Product> products;
+        if (status != null && !status.isEmpty()) {
+            products = productService.myProducts(userId, status);
+        } else {
+            products = productService.myProducts(userId);
+        }
+        return Result.success(products);
     }
 
     // 更新商品

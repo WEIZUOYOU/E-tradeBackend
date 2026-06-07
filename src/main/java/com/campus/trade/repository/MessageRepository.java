@@ -17,9 +17,9 @@ public class MessageRepository {
     /**
      * 插入消息记录
      */
-    public int insert(Message msg) {
+    public Long insert(Message msg) {
         String sql = "INSERT INTO message (sender_id, receiver_id, product_id, content, type, is_read, trade_id, trade_status, trade_data) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)";
-        return jdbcTemplate.update(sql, 
+        jdbcTemplate.update(sql, 
                 msg.getSenderId(), 
                 msg.getReceiverId(), 
                 msg.getProductId(), 
@@ -28,6 +28,19 @@ public class MessageRepository {
                 msg.getTradeId(),
                 msg.getTradeStatus(),
                 msg.getTradeData());
+        
+        // 获取刚插入的 ID
+        String sqlLastId = "SELECT LAST_INSERT_ID()";
+        return jdbcTemplate.queryForObject(sqlLastId, Long.class);
+    }
+
+    /**
+     * 根据 ID 查询消息
+     */
+    public Message findById(Long id) {
+        String sql = "SELECT * FROM message WHERE id = ?";
+        List<Message> messages = jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Message.class), id);
+        return messages.isEmpty() ? null : messages.get(0);
     }
 
     /**

@@ -158,4 +158,24 @@ public class TradeRepository {
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, args);
         return count == null ? 0 : count;
     }
+
+    /**
+     * 查询进行中的交易列表（状态0、1、2、3）
+     */
+    public List<Trade> findActiveTrades(Long userId, int page, int size) {
+        int offset = (page - 1) * size;
+        String sql = "SELECT * FROM trade WHERE (buyer_id = ? OR seller_id = ?) AND status IN (0, 1, 2, 3) " +
+                "ORDER BY create_time DESC LIMIT ? OFFSET ?";
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Trade.class), userId, userId, size, offset);
+    }
+
+    /**
+     * 查询已完成的交易列表（状态4、5）
+     */
+    public List<Trade> findCompletedTrades(Long userId, int page, int size) {
+        int offset = (page - 1) * size;
+        String sql = "SELECT * FROM trade WHERE (buyer_id = ? OR seller_id = ?) AND status IN (4, 5) " +
+                "ORDER BY create_time DESC LIMIT ? OFFSET ?";
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Trade.class), userId, userId, size, offset);
+    }
 }
