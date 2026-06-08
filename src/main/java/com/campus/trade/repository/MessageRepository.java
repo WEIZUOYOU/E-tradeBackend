@@ -118,4 +118,17 @@ public class MessageRepository {
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId, senderId);
         return count != null ? count : 0;
     }
+
+    /**
+     * 检查是否已存在相同交易卡片消息（用于幂等性控制）
+     * 同一发送者在 5 秒内对同一交易相同状态只能发送一次
+     */
+    public boolean existsTradeCardMessage(Long senderId, Long receiverId, Long tradeId, int tradeStatus) {
+        String sql = "SELECT COUNT(*) FROM message " +
+                     "WHERE sender_id = ? AND receiver_id = ? AND trade_id = ? " +
+                     "AND trade_status = ? AND type = 1 " +
+                     "AND create_time >= DATE_SUB(NOW(), INTERVAL 5 SECOND)";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, senderId, receiverId, tradeId, tradeStatus);
+        return count != null && count > 0;
+    }
 }

@@ -155,17 +155,25 @@ public class TradeService {
             throw new BusinessException(3006, "交易确认失败，请刷新后重试");
         }
         
-        // 6. 推送交易卡片消息给买家
-        SendMessageRequest msgReq = new SendMessageRequest();
-        msgReq.setReceiverId(trade.getBuyerId());
-        msgReq.setProductId(trade.getProductId());
-        msgReq.setType(1); // 交易卡片消息
-        msgReq.setTradeId(tradeId);
-        msgReq.setTradeStatus(1); // 待交易
-        msgReq.setContent("卖家已确认交易，请查看交易详情");
-        messageService.sendMessage(sellerId, msgReq);
-        
-        log.info("卖家确认交易成功: tradeId={}, sellerId={}, 已推送消息给买家 buyerId={}", tradeId, sellerId, trade.getBuyerId());
+        // 6. 推送交易卡片消息给买家（带幂等性检查）
+        // 检查 5 秒内是否已发送过相同的交易卡片消息，避免重复
+        boolean alreadySent = messageService.existsTradeCardMessage(
+                sellerId, trade.getBuyerId(), tradeId, 1);
+        if (!alreadySent) {
+            SendMessageRequest msgReq = new SendMessageRequest();
+            msgReq.setReceiverId(trade.getBuyerId());
+            msgReq.setProductId(trade.getProductId());
+            msgReq.setType(1); // 交易卡片消息
+            msgReq.setTradeId(tradeId);
+            msgReq.setTradeStatus(1); // 待交易
+            msgReq.setContent("卖家已确认交易，请查看交易详情");
+            messageService.sendMessage(sellerId, msgReq);
+            log.info("卖家确认交易成功: tradeId={}, sellerId={}, 已推送消息给买家 buyerId={}", 
+                    tradeId, sellerId, trade.getBuyerId());
+        } else {
+            log.warn("卖家确认交易: tradeId={}, sellerId={}, 检测到 5 秒内已发送相同消息，跳过重复推送", 
+                    tradeId, sellerId);
+        }
         return 1; // 返回新状态：待交易
     }
 

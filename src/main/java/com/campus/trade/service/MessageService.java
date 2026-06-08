@@ -215,6 +215,14 @@ public class MessageService {
     }
 
     /**
+     * 检查是否已存在相同交易卡片消息（用于幂等性控制）
+     * 同一发送者在 5 秒内对同一交易相同状态只能发送一次
+     */
+    public boolean existsTradeCardMessage(Long senderId, Long receiverId, Long tradeId, int tradeStatus) {
+        return messageRepository.existsTradeCardMessage(senderId, receiverId, tradeId, tradeStatus);
+    }
+
+    /**
      * 生成交易数据快照（发送时刻的完整状态）
      * @param tradeId 交易ID
      * @return 交易快照 JSON 字符串
