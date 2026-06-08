@@ -107,7 +107,7 @@ CREATE TABLE `trade` (
     `seller_phone` VARCHAR(20) COMMENT '卖家联系电话',
     `meeting_location` VARCHAR(200) COMMENT '面交地点',
     `meeting_time` DATETIME COMMENT '交易时间',
-    `status` TINYINT DEFAULT 0 COMMENT '0-待卖家确认, 1-待交易, 4-已完成, 5-已取消',
+    `status` TINYINT DEFAULT 0 COMMENT '0-待卖家确认, 1-待交易, 2-卖家已确认, 3-买家已确认, 4-已完成, 5-已取消, 6-买家已评价, 7-卖家已评价, 8-双方已评价',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     FOREIGN KEY (buyer_id) REFERENCES user(id),
@@ -209,6 +209,23 @@ CREATE TABLE `order_review` (
     FOREIGN KEY (reviewer_id) REFERENCES user(id) ON DELETE CASCADE,
     FOREIGN KEY (reviewee_id) REFERENCES user(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 评价表（基于交易）
+CREATE TABLE `review` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `trade_id` BIGINT NOT NULL COMMENT '交易ID',
+    `reviewer_id` BIGINT NOT NULL COMMENT '评价者ID',
+    `reviewee_id` BIGINT NOT NULL COMMENT '被评价者ID',
+    `reviewer_type` TINYINT NOT NULL COMMENT '0-买家, 1-卖家',
+    `rating` TINYINT NOT NULL COMMENT '评分1-5星',
+    `content` TEXT COMMENT '评价内容',
+    `tags` VARCHAR(500) COMMENT '评价标签（逗号分隔）',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY `uk_trade_reviewer` (`trade_id`, `reviewer_id`),
+    INDEX `idx_reviewee` (`reviewee_id`),
+    INDEX `idx_reviewer` (`reviewer_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='交易评价表';
 
 CREATE TABLE `authentication` (
     `id` INT PRIMARY KEY AUTO_INCREMENT,

@@ -111,12 +111,46 @@ public class TradeController {
      * GET /api/trade/detail/{tradeId}
      */
     @GetMapping("/detail/{tradeId}")
-    public Result<Trade> getTradeDetail(@PathVariable Long tradeId, HttpSession session) {
+    public Result<Map<String, Object>> getTradeDetail(@PathVariable Long tradeId, HttpSession session) {
         Long userId = getCurrentUserId(session);
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
-        return Result.success(tradeService.getTradeDetail(tradeId, userId));
+        
+        Trade trade = tradeService.getTradeDetail(tradeId, userId);
+        
+        // 转换为统一格式，确保 buyerIsAuth/sellerIsAuth 为 boolean 类型
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", trade.getId());
+        result.put("tradeNo", trade.getTradeNo());
+        result.put("productId", trade.getProductId());
+        result.put("buyerId", trade.getBuyerId());
+        result.put("sellerId", trade.getSellerId());
+        result.put("productName", trade.getProductName());
+        result.put("productPrice", trade.getProductPrice());
+        result.put("productImage", trade.getProductImage());
+        
+        // 买家信息
+        result.put("buyerName", trade.getBuyerName());
+        result.put("buyerAvatar", trade.getBuyerAvatar());
+        result.put("buyerCreditScore", trade.getBuyerCreditScore());
+        result.put("buyerIsAuth", trade.getBuyerIsAuth() != null && trade.getBuyerIsAuth() == 1); // boolean
+        result.put("buyerPhone", trade.getBuyerPhone());
+        
+        // 卖家信息
+        result.put("sellerName", trade.getSellerName());
+        result.put("sellerAvatar", trade.getSellerAvatar());
+        result.put("sellerCreditScore", trade.getSellerCreditScore());
+        result.put("sellerIsAuth", trade.getSellerIsAuth() != null && trade.getSellerIsAuth() == 1); // boolean
+        result.put("sellerPhone", trade.getSellerPhone());
+        
+        result.put("meetingLocation", trade.getMeetingLocation());
+        result.put("meetingTime", trade.getMeetingTime());
+        result.put("status", trade.getStatus());
+        result.put("createTime", trade.getCreateTime());
+        result.put("updateTime", trade.getUpdateTime());
+        
+        return Result.success(result);
     }
 
     /**

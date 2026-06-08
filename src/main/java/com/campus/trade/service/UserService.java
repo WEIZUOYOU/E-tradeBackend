@@ -37,15 +37,21 @@ public class UserService {
 
     // 注册
     public Long register(RegisterRequest req) {
-        // 1. 检查手机号是否已存在
+        // 1. 检查学号是否已存在
+        if (userRepository.findByStudentId(req.getStudentId()) != null) {
+            throw new BusinessException("学号已注册");
+        }
+        
+        // 2. 检查手机号是否已存在
         if (userRepository.findByPhone(req.getPhone()) != null) {
             throw new BusinessException("手机号已注册");
         }
 
         User user = new User();
+        user.setStudentId(req.getStudentId());
         user.setUsername(req.getUsername());
 
-        // 2. 使用更安全的 BCrypt 加密
+        // 3. 使用更安全的 BCrypt 加密
         user.setPassword(PasswordUtil.encode(req.getPassword()));
         user.setPhone(req.getPhone());
         user.setStatus(1); // 1-正常 (匹配之前的常量定义)

@@ -6,11 +6,14 @@ import com.campus.trade.dto.response.MessageUnreadCountResponse;
 import com.campus.trade.dto.websocket.WebSocketMessage;
 import com.campus.trade.entity.Message;
 import com.campus.trade.entity.Product;
+import com.campus.trade.entity.Trade;
 import com.campus.trade.entity.User;
 import com.campus.trade.repository.MessageRepository;
 import com.campus.trade.repository.ProductRepository;
+import com.campus.trade.repository.TradeRepository;
 import com.campus.trade.repository.UserRepository;
 import com.campus.trade.websocket.MessageWebSocketHandler;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class MessageService {
@@ -35,7 +40,13 @@ public class MessageService {
     private ProductRepository productRepository;
 
     @Autowired
+    private TradeRepository tradeRepository;
+
+    @Autowired
     private MessageWebSocketHandler messageWebSocketHandler;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     /**
      * 发送消息逻辑
@@ -73,8 +84,22 @@ public class MessageService {
         // 如果是交易卡片消息，设置交易相关字段
         if (req.getType() == 1) {
             msg.setTradeId(req.getTradeId());
-            msg.setTradeStatus(req.getTradeStatus());
-            msg.setTradeData(req.getTradeData());
+            
+            // 自动生成交易快照（不依赖前端传递）
+            if (req.getTradeId() != null) {
+                msg.setTradeData(generateTradeDataSnapshot(req.getTradeId()));
+                // 从快照中获取状态（确保状态与快照一致）
+                Trade trade = tradeRepository.findById(req.getTradeId());
+                if (trade != null) {
+                    msg.setTradeStatus(trade.getStatus());
+                } else {
+                    msg.setTradeStatus(req.getTradeStatus());
+                }
+            } else {
+                // 没有 tradeId 时，使用前端传递的数据
+                msg.setTradeStatus(req.getTradeStatus());
+                msg.setTradeData(req.getTradeData());
+            }
         }
         
         Long messageId = messageRepository.insert(msg);
@@ -187,5 +212,57 @@ public class MessageService {
      */
     public void markSessionAsRead(Long userId, Long targetUserId) {
         messageRepository.markSessionAsRead(userId, targetUserId);
+    }
+
+    /**
+     * 生成交易数据快照（发送时刻的完整状态）
+     * @param tradeId 交易ID
+     * @return 交易快照 JSON 字符串
+     */
+    public String generateTradeDataSnapshot(Long tradeId) {
+        try {
+            Trade trade = tradeRepository.findById(tradeId);
+            if (trade == null) {
+                log.warn("交易不存在: tradeId={}", tradeId);
+                return null;
+            }
+            
+            Map<String, Object> snapshot = new HashMap<>();
+            
+            // 交易基本信息
+            snapshot.put("tradeId", trade.getId());
+            snapshot.put("tradeNo", trade.getTradeNo());
+            snapshot.put("status", trade.getStatus());
+            snapshot.put("meetingLocation", trade.getMeetingLocation());
+            snapshot.put("meetingTime", trade.getMeetingTime() != null ? trade.getMeetingTime().toString() : null);
+            snapshot.put("createTime", trade.getCreateTime() != null ? trade.getCreateTime().toString() : null);
+            
+            // 商品信息
+            snapshot.put("productId", trade.getProductId());
+            snapshot.put("productName", trade.getProductName());
+            snapshot.put("productPrice", trade.getProductPrice());
+            snapshot.put("productImage", trade.getProductImage());
+            
+            // 买家信息
+            snapshot.put("buyerId", trade.getBuyerId());
+            snapshot.put("buyerName", trade.getBuyerName());
+            snapshot.put("buyerAvatar", trade.getBuyerAvatar());
+            snapshot.put("buyerCreditScore", trade.getBuyerCreditScore());
+            snapshot.put("buyerIsAuth", trade.getBuyerIsAuth() != null && trade.getBuyerIsAuth() == 1);
+            snapshot.put("buyerPhone", trade.getBuyerPhone());
+            
+            // 卖家信息
+            snapshot.put("sellerId", trade.getSellerId());
+            snapshot.put("sellerName", trade.getSellerName());
+            snapshot.put("sellerAvatar", trade.getSellerAvatar());
+            snapshot.put("sellerCreditScore", trade.getSellerCreditScore());
+            snapshot.put("sellerIsAuth", trade.getSellerIsAuth() != null && trade.getSellerIsAuth() == 1);
+            snapshot.put("sellerPhone", trade.getSellerPhone());
+            
+            return objectMapper.writeValueAsString(snapshot);
+        } catch (Exception e) {
+            log.error("生成交易快照失败: tradeId={}", tradeId, e);
+            return null;
+        }
     }
 }
