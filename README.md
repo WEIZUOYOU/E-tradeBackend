@@ -53,7 +53,7 @@ USE E_tradeDB;
 source D:/E-tradeBackend/docs/schema.sql; # 执行数据库初始化脚本
 
 # 运行项目
-mvn spring-boot:run
+mvn clean spring-boot:run
 ```
 
 ## 完整 API 文档

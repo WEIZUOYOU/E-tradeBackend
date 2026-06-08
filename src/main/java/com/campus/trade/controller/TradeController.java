@@ -286,15 +286,20 @@ public class TradeController {
 
     /**
      * 获取我的交易列表
-     * GET /api/trade/my/list?status=1&page=1&size=10
+     * GET /api/trade/my/list?userId=1&status=1&page=1&size=10
+     * 支持两种方式传参：session中的userId 或 请求参数中的userId（用于测试）
      */
     @GetMapping("/my/list")
     public Result<Map<String, Object>> myTradeList(
+            @RequestParam(required = false) Long userId,
             @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             HttpSession session) {
-        Long userId = getCurrentUserId(session);
+        // 优先使用请求参数中的userId，其次从session中获取
+        if (userId == null) {
+            userId = getCurrentUserId(session);
+        }
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
