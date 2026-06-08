@@ -1,6 +1,8 @@
 package com.campus.trade.repository;
 
 import com.campus.trade.entity.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -11,27 +13,40 @@ import java.util.List;
 @Repository
 public class MessageRepository {
 
+    private static final Logger log = LoggerFactory.getLogger(MessageRepository.class);
+
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     /**
-     * 插入消息记录
+     * 插入消息记录（处理唯一约束冲突）
+     * @return 消息ID，如果因唯一约束冲突插入失败则返回 null
      */
     public Long insert(Message msg) {
-        String sql = "INSERT INTO message (sender_id, receiver_id, product_id, content, type, is_read, trade_id, trade_status, trade_data) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)";
-        jdbcTemplate.update(sql, 
-                msg.getSenderId(), 
-                msg.getReceiverId(), 
-                msg.getProductId(), 
-                msg.getContent(), 
-                msg.getType(),
-                msg.getTradeId(),
-                msg.getTradeStatus(),
-                msg.getTradeData());
-        
-        // 获取刚插入的 ID
-        String sqlLastId = "SELECT LAST_INSERT_ID()";
-        return jdbcTemplate.queryForObject(sqlLastId, Long.class);
+        try {
+            String sql = "INSERT INTO message (sender_id, receiver_id, product_id, content, type, is_read, trade_id, trade_status, trade_data) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)";
+            jdbcTemplate.update(sql, 
+                    msg.getSenderId(), 
+                    msg.getReceiverId(), 
+                    msg.getProductId(), 
+                    msg.getContent(), 
+                    msg.getType(),
+                    msg.getTradeId(),
+                    msg.getTradeStatus(),
+                    msg.getTradeData());
+            
+            // 获取刚插入的 ID
+            String sqlLastId = "SELECT LAST_INSERT_ID()";
+            return jdbcTemplate.queryForObject(sqlLastId, Long.class);
+        } catch (Exception e) {
+            // 如果是唯一约束冲突（Duplicate entry），返回 null 而不是抛出异常
+            if (e.getMessage() != null && e.getMessage().contains("Duplicate entry")) {
+                log.warn("消息插入失败：唯一约束冲突，senderId={}, receiverId={}, tradeId={}", 
+                        msg.getSenderId(), msg.getReceiverId(), msg.getTradeId());
+                return null;
+            }
+            throw e; // 其他异常正常抛出
+        }
     }
 
     /**

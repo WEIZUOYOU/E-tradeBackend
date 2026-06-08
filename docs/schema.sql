@@ -176,7 +176,11 @@ CREATE TABLE `message` (
     `trade_status` INT COMMENT '交易状态',
     `trade_data` TEXT COMMENT '交易数据JSON',
     FOREIGN KEY (sender_id) REFERENCES user(id) ON DELETE CASCADE,
-    FOREIGN KEY (receiver_id) REFERENCES user(id) ON DELETE CASCADE
+    FOREIGN KEY (receiver_id) REFERENCES user(id) ON DELETE CASCADE,
+    -- 唯一约束：同一发送者对同一交易同一状态只能发送一条交易卡片消息
+    UNIQUE KEY `uk_trade_status_sender` (`trade_id`, `trade_status`, `sender_id`, `receiver_id`),
+    INDEX `idx_receiver_sender` (`receiver_id`, `sender_id`),
+    INDEX `idx_receiver_read` (`receiver_id`, `is_read`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `browse_history` (

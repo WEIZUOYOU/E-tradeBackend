@@ -104,6 +104,13 @@ public class MessageService {
         
         Long messageId = messageRepository.insert(msg);
         
+        // 如果插入失败（唯一约束冲突），直接返回，不发送 WebSocket
+        if (messageId == null) {
+            log.warn("消息发送失败：唯一约束冲突，senderId={}, receiverId={}, tradeId={}", 
+                    senderId, req.getReceiverId(), req.getTradeId());
+            return;
+        }
+        
         // 查询完整的消息记录（包含 createTime）
         Message savedMsg = messageRepository.findById(messageId);
         if (savedMsg == null) {
