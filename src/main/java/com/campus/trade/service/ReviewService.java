@@ -1,11 +1,15 @@
 package com.campus.trade.service;
 
+import com.campus.trade.dto.request.SendMessageRequest;
 import com.campus.trade.entity.Review;
 import com.campus.trade.entity.Trade;
+import com.campus.trade.entity.User;
 import com.campus.trade.exception.BusinessException;
 import com.campus.trade.repository.ReviewRepository;
 import com.campus.trade.repository.TradeRepository;
 import com.campus.trade.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +24,8 @@ import java.util.Map;
 @Service
 public class ReviewService {
 
+    private static final Logger log = LoggerFactory.getLogger(ReviewService.class);
+
     @Autowired
     private ReviewRepository reviewRepository;
 
@@ -31,6 +37,9 @@ public class ReviewService {
 
     @Autowired
     private CreditService creditService;
+
+    @Autowired
+    private MessageService messageService;
 
     // 交易状态常量
     private static final int STATUS_COMPLETED = 4;      // 已完成，等待评价
@@ -102,22 +111,37 @@ public class ReviewService {
         // 6. 确定被评价者
         Long revieweeId = isBuyer ? trade.getSellerId() : trade.getBuyerId();
 
-        // 7. 保存评价
+        // 7. 获取评价者和被评价者信息
+        User reviewer = userRepository.findById(reviewerId);
+        User reviewee = userRepository.findById(revieweeId);
+        
+        String reviewerName = reviewer != null ? reviewer.getUsername() : "";
+        String revieweeName = reviewee != null ? reviewee.getUsername() : "";
+
+        // 8. 保存评价
         Review review = new Review();
         review.setTradeId(tradeId);
+        review.setTradeNo(trade.getTradeNo());
         review.setReviewerId(reviewerId);
+        review.setReviewerName(reviewerName);
         review.setRevieweeId(revieweeId);
+        review.setRevieweeName(revieweeName);
         review.setReviewerType(isBuyer ? 0 : 1); // 0-买家，1-卖家
         review.setRating(rating);
         review.setContent(content);
         review.setTags(tags);
+        review.setProductName(trade.getProductName());
+        review.setProductImage(trade.getProductImage());
         reviewRepository.insert(review);
 
-        // 8. 更新交易状态
-        updateTradeStatus(tradeId, isBuyer);
+        // 9. 更新交易状态
+        int newStatus = updateTradeStatus(tradeId, isBuyer);
 
-        // 9. 更新信用分
+        // 10. 更新信用分
         updateCreditScore(revieweeId, rating);
+
+        // 11. 发送评价通知消息
+        sendReviewNotification(trade, reviewerId, revieweeId, newStatus);
     }
 
     /**
@@ -126,8 +150,9 @@ public class ReviewService {
      * - 卖家评价后（买家已评价）：6 → 8
      * - 卖家评价后（卖家先评价）：4 → 7
      * - 买家评价后（卖家已评价）：7 → 8
+     * @return 更新后的状态
      */
-    private void updateTradeStatus(Long tradeId, boolean isBuyer) {
+    private int updateTradeStatus(Long tradeId, boolean isBuyer) {
         Trade trade = tradeRepository.findById(tradeId);
         int currentStatus = trade.getStatus();
         int newStatus;
@@ -153,6 +178,50 @@ public class ReviewService {
         }
 
         tradeRepository.updateStatus(tradeId, newStatus);
+        return newStatus;
+    }
+
+    /**
+     * 发送评价通知消息
+     * @param trade 交易信息
+     * @param reviewerId 评价者ID
+     * @param revieweeId 被评价者ID
+     * @param newStatus 新的交易状态
+     */
+    private void sendReviewNotification(Trade trade, Long reviewerId, Long revieweeId, int newStatus) {
+        try {
+            String messageContent;
+            switch (newStatus) {
+                case STATUS_BUYER_REVIEWED:
+                    messageContent = "买家已评价";
+                    break;
+                case STATUS_SELLER_REVIEWED:
+                    messageContent = "卖家已评价";
+                    break;
+                case STATUS_BOTH_REVIEWED:
+                    messageContent = "双方已评价";
+                    break;
+                default:
+                    messageContent = "评价已完成";
+            }
+
+            SendMessageRequest request = new SendMessageRequest();
+            request.setReceiverId(revieweeId);
+            request.setProductId(trade.getProductId());
+            request.setContent(messageContent);
+            request.setType(1); // 交易卡片消息
+            request.setTradeId(trade.getId());
+            request.setTradeStatus(newStatus);
+
+            // 发送消息（使用消息服务）
+            messageService.sendMessage(reviewerId, request);
+            
+            log.info("评价通知消息已发送: reviewerId={}, revieweeId={}, tradeId={}, status={}", 
+                    reviewerId, revieweeId, trade.getId(), newStatus);
+        } catch (Exception e) {
+            // 消息发送失败不影响评价流程
+            log.error("发送评价通知消息失败: tradeId={}, error={}", trade.getId(), e.getMessage());
+        }
     }
 
     /**
@@ -180,6 +249,96 @@ public class ReviewService {
     }
 
     /**
+     * 根据ID获取评价详情
+     */
+    public Review getReviewById(Long id) {
+        return reviewRepository.findById(id);
+    }
+
+    /**
+     * 删除评价（需权限校验）
+     */
+    @Transactional
+    public void deleteReview(Long id, Long userId) {
+        Review review = reviewRepository.findById(id);
+        if (review == null) {
+            throw new BusinessException(4006, "评价不存在");
+        }
+        
+        // 权限校验：只有评价者本人可以删除评价
+        if (!review.getReviewerId().equals(userId)) {
+            throw new BusinessException(4007, "无权删除该评价");
+        }
+        
+        // 获取相关数据用于后续处理
+        Long tradeId = review.getTradeId();
+        Long revieweeId = review.getRevieweeId();
+        Integer rating = review.getRating();
+        Integer reviewerType = review.getReviewerType(); // 0-买家，1-卖家
+        
+        // 删除评价记录
+        reviewRepository.deleteById(id);
+        
+        // 恢复信用分（反向计算）
+        restoreCreditScore(revieweeId, rating);
+        
+        // 更新交易状态
+        restoreTradeStatus(tradeId, reviewerType);
+    }
+
+    /**
+     * 恢复信用分（删除评价时）
+     * 好评（4-5星）-5分，中评（3星）-0分，差评（1-2星）+10分
+     */
+    private void restoreCreditScore(Long userId, Integer rating) {
+        int scoreChange;
+        if (rating >= 4) {
+            scoreChange = -5;  // 撤销好评，扣回5分
+        } else if (rating == 3) {
+            scoreChange = 0;   // 中评无变化
+        } else {
+            scoreChange = 10;  // 撤销差评，恢复10分
+        }
+        userRepository.updateCreditScore(userId, scoreChange);
+        creditService.updateReviewRate(userId);
+    }
+
+    /**
+     * 恢复交易状态（删除评价时）
+     * - 删除买家评价：状态6→4，状态8→7
+     * - 删除卖家评价：状态7→4，状态8→6
+     */
+    private void restoreTradeStatus(Long tradeId, Integer reviewerType) {
+        Trade trade = tradeRepository.findById(tradeId);
+        if (trade == null) {
+            return;
+        }
+        
+        int currentStatus = trade.getStatus();
+        int newStatus = currentStatus;
+        
+        if (reviewerType == 0) {
+            // 删除买家评价
+            if (currentStatus == STATUS_BUYER_REVIEWED) {
+                newStatus = STATUS_COMPLETED; // 6 → 4
+            } else if (currentStatus == STATUS_BOTH_REVIEWED) {
+                newStatus = STATUS_SELLER_REVIEWED; // 8 → 7
+            }
+        } else {
+            // 删除卖家评价
+            if (currentStatus == STATUS_SELLER_REVIEWED) {
+                newStatus = STATUS_COMPLETED; // 7 → 4
+            } else if (currentStatus == STATUS_BOTH_REVIEWED) {
+                newStatus = STATUS_BUYER_REVIEWED; // 8 → 6
+            }
+        }
+        
+        if (newStatus != currentStatus) {
+            tradeRepository.updateStatus(tradeId, newStatus);
+        }
+    }
+
+    /**
      * 获取用户收到的所有评价
      */
     public List<Review> getReceivedReviews(Long userId) {
@@ -194,17 +353,31 @@ public class ReviewService {
     }
 
     /**
-     * 获取用户收到的平均评分
-     */
-    public double getAverageRating(Long userId) {
-        return reviewRepository.getAverageRating(userId);
-    }
-
-    /**
      * 获取用户收到的评价数量
      */
     public int getReceivedReviewCount(Long userId) {
         return reviewRepository.countReceived(userId);
+    }
+
+    /**
+     * 获取用户给出的评价数量
+     */
+    public int getGivenReviewCount(Long userId) {
+        return reviewRepository.countGiven(userId);
+    }
+
+    /**
+     * 获取用户给出的评价的平均评分
+     */
+    public double getGivenAverageRating(Long userId) {
+        return reviewRepository.getGivenAverageRating(userId);
+    }
+
+    /**
+     * 获取用户收到的平均评分
+     */
+    public double getAverageRating(Long userId) {
+        return reviewRepository.getAverageRating(userId);
     }
 
     /**

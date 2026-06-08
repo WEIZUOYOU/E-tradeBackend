@@ -87,14 +87,9 @@ public class MessageService {
             
             // 自动生成交易快照（不依赖前端传递）
             if (req.getTradeId() != null) {
-                msg.setTradeData(generateTradeDataSnapshot(req.getTradeId()));
-                // 从快照中获取状态（确保状态与快照一致）
-                Trade trade = tradeRepository.findById(req.getTradeId());
-                if (trade != null) {
-                    msg.setTradeStatus(trade.getStatus());
-                } else {
-                    msg.setTradeStatus(req.getTradeStatus());
-                }
+                msg.setTradeData(generateTradeDataSnapshot(req.getTradeId(), req.getTradeStatus()));
+                // 使用请求中的状态（确保是最新状态）
+                msg.setTradeStatus(req.getTradeStatus());
             } else {
                 // 没有 tradeId 时，使用前端传递的数据
                 msg.setTradeStatus(req.getTradeStatus());
@@ -235,6 +230,16 @@ public class MessageService {
      * @return 交易快照 JSON 字符串
      */
     public String generateTradeDataSnapshot(Long tradeId) {
+        return generateTradeDataSnapshot(tradeId, null);
+    }
+
+    /**
+     * 生成交易数据快照（发送时刻的完整状态）
+     * @param tradeId 交易ID
+     * @param overrideStatus 覆盖状态（可选，传入时使用此状态而非数据库状态）
+     * @return 交易快照 JSON 字符串
+     */
+    public String generateTradeDataSnapshot(Long tradeId, Integer overrideStatus) {
         try {
             Trade trade = tradeRepository.findById(tradeId);
             if (trade == null) {
@@ -247,7 +252,7 @@ public class MessageService {
             // 交易基本信息
             snapshot.put("tradeId", trade.getId());
             snapshot.put("tradeNo", trade.getTradeNo());
-            snapshot.put("status", trade.getStatus());
+            snapshot.put("status", overrideStatus != null ? overrideStatus : trade.getStatus());
             snapshot.put("meetingLocation", trade.getMeetingLocation());
             snapshot.put("meetingTime", trade.getMeetingTime() != null ? trade.getMeetingTime().toString() : null);
             snapshot.put("createTime", trade.getCreateTime() != null ? trade.getCreateTime().toString() : null);

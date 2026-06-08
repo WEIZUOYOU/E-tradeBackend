@@ -1,16 +1,17 @@
 package com.campus.trade.controller;
 
 import com.campus.trade.common.Result;
+import com.campus.trade.dto.request.CreateTradeReviewRequest;
+import com.campus.trade.dto.response.ReviewListResponse;
 import com.campus.trade.entity.Review;
 import com.campus.trade.service.ReviewService;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 评价控制器
@@ -28,19 +29,14 @@ public class ReviewController {
      * POST /api/review
      */
     @PostMapping
-    public Result<Void> createReview(@RequestBody Map<String, Object> request, HttpSession session) {
+    public Result<Void> createReview(@Valid @RequestBody CreateTradeReviewRequest request, HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
 
-        // 解析请求参数
-        Long tradeId = Long.parseLong(request.get("tradeId").toString());
-        Integer rating = Integer.parseInt(request.get("rating").toString());
-        String content = (String) request.get("content");
-        String tags = (String) request.getOrDefault("tags", "");
-
-        reviewService.createReview(userId, tradeId, rating, content, tags);
+        reviewService.createReview(userId, request.getTradeId(), request.getRating(), 
+                                   request.getContent(), request.getTags());
         return Result.success();
     }
 
@@ -49,17 +45,17 @@ public class ReviewController {
      * GET /api/review/received?userId={userId}
      */
     @GetMapping("/received")
-    public Result<Map<String, Object>> getReceivedReviews(@RequestParam Long userId) {
+    public Result<ReviewListResponse> getReceivedReviews(@RequestParam Long userId) {
         List<Review> reviews = reviewService.getReceivedReviews(userId);
         double avgRating = reviewService.getAverageRating(userId);
         int reviewCount = reviewService.getReceivedReviewCount(userId);
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("reviews", reviews);
-        data.put("averageRating", avgRating);
-        data.put("reviewCount", reviewCount);
+        ReviewListResponse response = new ReviewListResponse();
+        response.setReviews(reviews);
+        response.setAverageRating(avgRating);
+        response.setReviewCount(reviewCount);
 
-        return Result.success(data);
+        return Result.success(response);
     }
 
     /**
@@ -67,13 +63,45 @@ public class ReviewController {
      * GET /api/review/given?userId={userId}
      */
     @GetMapping("/given")
-    public Result<Map<String, Object>> getGivenReviews(@RequestParam Long userId) {
+    public Result<ReviewListResponse> getGivenReviews(@RequestParam Long userId) {
         List<Review> reviews = reviewService.getGivenReviews(userId);
+        double avgRating = reviewService.getGivenAverageRating(userId);
+        int reviewCount = reviewService.getGivenReviewCount(userId);
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("reviews", reviews);
+        ReviewListResponse response = new ReviewListResponse();
+        response.setReviews(reviews);
+        response.setAverageRating(avgRating);
+        response.setReviewCount(reviewCount);
 
-        return Result.success(data);
+        return Result.success(response);
+    }
+
+    /**
+     * 获取单条评价详情
+     * GET /api/review/{id}
+     */
+    @GetMapping("/{id}")
+    public Result<Review> getReviewById(@PathVariable Long id) {
+        Review review = reviewService.getReviewById(id);
+        if (review == null) {
+            return Result.error(404, "评价不存在");
+        }
+        return Result.success(review);
+    }
+
+    /**
+     * 删除评价
+     * DELETE /api/review/{id}
+     */
+    @DeleteMapping("/{id}")
+    public Result<Void> deleteReview(@PathVariable Long id, HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+
+        reviewService.deleteReview(id, userId);
+        return Result.success();
     }
 
     /**
@@ -91,8 +119,8 @@ public class ReviewController {
      * GET /api/review/stats?userId={userId}
      */
     @GetMapping("/stats")
-    public Result<Map<String, Object>> getReviewStats(@RequestParam Long userId) {
-        Map<String, Object> stats = reviewService.getReviewStats(userId);
+    public Result<java.util.Map<String, Object>> getReviewStats(@RequestParam Long userId) {
+        java.util.Map<String, Object> stats = reviewService.getReviewStats(userId);
         return Result.success(stats);
     }
 }
