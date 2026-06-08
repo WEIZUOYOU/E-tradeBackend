@@ -16,6 +16,7 @@ public class Review {
     private Integer rating;       // 评分：1-5星
     private String content;       // 评价内容
     private String tags;         // 评价标签（逗号分隔：准时,物品完好,价格合理等）
+    private String productImage;  // 商品图片路径
     private LocalDateTime createTime; // 创建时间
     private LocalDateTime updateTime; // 更新时间
 }

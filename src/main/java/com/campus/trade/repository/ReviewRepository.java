@@ -49,19 +49,23 @@ public class ReviewRepository {
     // 获取交易的所有评价
     public List<Review> findByTradeId(Long tradeId) {
         String sql = "SELECT * FROM review WHERE trade_id = ? ORDER BY create_time DESC";
-        return jdbcTemplate.query(sql, new ReviewRowMapper(), tradeId);
+        return jdbcTemplate.query(sql, new ReviewWithProductImageRowMapper(), tradeId);
     }
 
-    // 获取用户收到的所有评价
+    // 获取用户收到的所有评价（包含商品图片）
     public List<Review> findReceivedReviews(Long userId) {
-        String sql = "SELECT r.* FROM review r WHERE r.reviewee_id = ? ORDER BY r.create_time DESC";
-        return jdbcTemplate.query(sql, new ReviewRowMapper(), userId);
+        String sql = "SELECT r.*, t.product_image FROM review r " +
+                     "JOIN trade t ON r.trade_id = t.id " +
+                     "WHERE r.reviewee_id = ? ORDER BY r.create_time DESC";
+        return jdbcTemplate.query(sql, new ReviewWithProductImageRowMapper(), userId);
     }
 
-    // 获取用户给出的所有评价
+    // 获取用户给出的所有评价（包含商品图片）
     public List<Review> findGivenReviews(Long userId) {
-        String sql = "SELECT r.* FROM review r WHERE r.reviewer_id = ? ORDER BY r.create_time DESC";
-        return jdbcTemplate.query(sql, new ReviewRowMapper(), userId);
+        String sql = "SELECT r.*, t.product_image FROM review r " +
+                     "JOIN trade t ON r.trade_id = t.id " +
+                     "WHERE r.reviewer_id = ? ORDER BY r.create_time DESC";
+        return jdbcTemplate.query(sql, new ReviewWithProductImageRowMapper(), userId);
     }
 
     // 统计用户收到的评价数量
@@ -99,8 +103,8 @@ public class ReviewRepository {
         return (double) good / total;
     }
 
-    // 行映射器
-    private static class ReviewRowMapper implements RowMapper<Review> {
+    // 行映射器（包含商品图片）
+    private static class ReviewWithProductImageRowMapper implements RowMapper<Review> {
         @Override
         public Review mapRow(ResultSet rs, int rowNum) throws SQLException {
             Review review = new Review();
@@ -112,6 +116,7 @@ public class ReviewRepository {
             review.setRating(rs.getInt("rating"));
             review.setContent(rs.getString("content"));
             review.setTags(rs.getString("tags"));
+            review.setProductImage(rs.getString("product_image"));
             review.setCreateTime(rs.getTimestamp("create_time").toLocalDateTime());
             review.setUpdateTime(rs.getTimestamp("update_time").toLocalDateTime());
             return review;

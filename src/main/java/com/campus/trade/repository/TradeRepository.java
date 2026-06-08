@@ -170,11 +170,11 @@ public class TradeRepository {
     }
 
     /**
-     * 查询已完成的交易列表（状态4、5）
+     * 查询已完成的交易列表（状态4、5、6、7、8）
      */
     public List<Trade> findCompletedTrades(Long userId, int page, int size) {
         int offset = (page - 1) * size;
-        String sql = "SELECT * FROM trade WHERE (buyer_id = ? OR seller_id = ?) AND status IN (4, 5) " +
+        String sql = "SELECT * FROM trade WHERE (buyer_id = ? OR seller_id = ?) AND status IN (4, 5, 6, 7, 8) " +
                 "ORDER BY create_time DESC LIMIT ? OFFSET ?";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Trade.class), userId, userId, size, offset);
     }

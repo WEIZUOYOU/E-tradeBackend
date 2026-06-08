@@ -58,17 +58,20 @@ mvn spring-boot:run
 
 ## 完整 API 文档
 
-详见根目录 `api.txt`，共 42 个接口，按模块分类：
+详见根目录 `api.txt`，共 52 个接口，按模块分类：
 
 | 模块 | 接口路径 | 数量 |
 |------|---------|------|
-| 用户模块 | `/api/user/*` | 12 |
+| 用户模块 | `/api/user/*` | 14 |
 | 商品模块 | `/api/product/*` | 11 |
-| 订单模块 | `/api/v1/trade/order/*` | 8 |
-| 分类模块 | `/api/category/*` | 1 |
-| 消息模块 | `/api/message/*` | 2 |
+| 交易模块 | `/api/trade/*` | 9 |
+| 分类模块 | `/api/category/*` | 2 |
+| 消息模块 | `/api/message/*` | 6 |
 | 举报模块 | `/api/v1/trade/report/*` | 4 |
 | 通知模块 | `/api/notification/*` | 4 |
+| 收藏模块 | `/api/v1/trade/favorite/*` | 4 |
+| 评价模块 | `/api/review/*` | 5 |
+| 信用模块 | `/api/v1/trade/credit/*` | 2 |
 
 ## 主要功能
 

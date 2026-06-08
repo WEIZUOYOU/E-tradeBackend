@@ -93,8 +93,24 @@ public class ProductService {
     }
 
     // 我的商品
-    public List<Product> myProducts(Long userId) {
-        return productRepository.findBySellerId(userId);
+    /**
+     * 我的商品（分页）
+     * @param userId 用户ID
+     * @param status 状态（可选）
+     * @param page 页码（从1开始）
+     * @param size 每页数量
+     */
+    public List<Product> myProducts(Long userId, Integer status, int page, int size) {
+        return productRepository.findBySellerIdWithPage(userId, status, page, size);
+    }
+
+    /**
+     * 统计我的商品数量
+     * @param userId 用户ID
+     * @param status 状态（可选）
+     */
+    public int countMyProducts(Long userId, Integer status) {
+        return productRepository.countBySellerId(userId, status);
     }
 
     /**

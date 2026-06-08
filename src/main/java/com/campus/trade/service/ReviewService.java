@@ -55,17 +55,35 @@ public class ReviewService {
             throw new BusinessException(4001, "交易不存在");
         }
 
-        // 2. 检查交易状态是否为已完成（状态4）
-        if (trade.getStatus() != STATUS_COMPLETED) {
-            throw new BusinessException(4004, "交易尚未完成，无法评价");
-        }
-
-        // 3. 检查评价者身份（必须是买家或卖家）
+        // 2. 检查评价者身份（必须是买家或卖家）
         boolean isBuyer = trade.getBuyerId().equals(reviewerId);
         boolean isSeller = trade.getSellerId().equals(reviewerId);
         
         if (!isBuyer && !isSeller) {
             throw new BusinessException(4002, "无权评价该交易");
+        }
+
+        // 3. 检查交易状态是否允许评价
+        // 允许评价的状态：4(已完成)、6(买家已评价)、7(卖家已评价)
+        // - 状态4：双方都可以评价
+        // - 状态6：只有卖家可以评价（买家已评价，等待卖家评价）
+        // - 状态7：只有买家可以评价（卖家已评价，等待买家评价）
+        int currentStatus = trade.getStatus();
+        boolean canReview = false;
+        
+        if (currentStatus == STATUS_COMPLETED) {
+            // 状态4：双方都可以评价
+            canReview = true;
+        } else if (currentStatus == STATUS_BUYER_REVIEWED && isSeller) {
+            // 状态6：只有卖家可以评价
+            canReview = true;
+        } else if (currentStatus == STATUS_SELLER_REVIEWED && isBuyer) {
+            // 状态7：只有买家可以评价
+            canReview = true;
+        }
+        
+        if (!canReview) {
+            throw new BusinessException(4004, "交易状态不允许评价");
         }
 
         // 4. 检查是否评价自己

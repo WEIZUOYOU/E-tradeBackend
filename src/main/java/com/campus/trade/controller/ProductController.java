@@ -11,7 +11,9 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpSession;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/product")
@@ -60,23 +62,60 @@ public class ProductController {
         return Result.success(null);
     }
 
-    // 我的商品
+    // 我的商品（支持分页）
     @GetMapping("/my")
-    public Result<List<Product>> myProducts(
+    public Result<Map<String, Object>> myProducts(
             @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
             HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
-        
-        List<Product> products;
-        if (status != null && !status.isEmpty()) {
-            products = productService.myProducts(userId, status);
-        } else {
-            products = productService.myProducts(userId);
+
+        // 参数边界处理
+        if (page < 1) {
+            page = 1;
         }
-        return Result.success(products);
+        if (size < 1) {
+            size = 10;
+        }
+        if (size > 50) {
+            size = 50;
+        }
+
+        // 将状态字符串转换为状态码
+        Integer statusCode = null;
+        if (status != null && !status.isEmpty()) {
+            if ("active".equals(status)) {
+                statusCode = 1; // 上架中
+            } else if ("sold_out".equals(status)) {
+                statusCode = 3; // 已售罄
+            } else if ("offline".equals(status)) {
+                statusCode = 2; // 已下架
+            } else if ("pending".equals(status)) {
+                statusCode = 0; // 待审核
+            } else if ("rejected".equals(status)) {
+                statusCode = 4; // 审核不通过
+            }
+        }
+
+        // 查询商品列表
+        List<Product> products = productService.myProducts(userId, statusCode, page, size);
+        
+        // 统计总数
+        int total = productService.countMyProducts(userId, statusCode);
+        int totalPages = (int) Math.ceil((double) total / size);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("products", products);
+        data.put("page", page);
+        data.put("size", size);
+        data.put("total", total);
+        data.put("totalPages", totalPages);
+
+        return Result.success(data);
     }
 
     // 更新商品
