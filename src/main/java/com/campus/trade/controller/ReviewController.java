@@ -42,10 +42,15 @@ public class ReviewController {
 
     /**
      * 获取用户收到的所有评价
-     * GET /api/review/received?userId={userId}
+     * GET /api/review/received
      */
     @GetMapping("/received")
-    public Result<ReviewListResponse> getReceivedReviews(@RequestParam Long userId) {
+    public Result<ReviewListResponse> getReceivedReviews(HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+        
         List<Review> reviews = reviewService.getReceivedReviews(userId);
         double avgRating = reviewService.getAverageRating(userId);
         int reviewCount = reviewService.getReceivedReviewCount(userId);
@@ -60,10 +65,15 @@ public class ReviewController {
 
     /**
      * 获取用户给出的所有评价
-     * GET /api/review/given?userId={userId}
+     * GET /api/review/given
      */
     @GetMapping("/given")
-    public Result<ReviewListResponse> getGivenReviews(@RequestParam Long userId) {
+    public Result<ReviewListResponse> getGivenReviews(HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+        
         List<Review> reviews = reviewService.getGivenReviews(userId);
         double avgRating = reviewService.getGivenAverageRating(userId);
         int reviewCount = reviewService.getGivenReviewCount(userId);

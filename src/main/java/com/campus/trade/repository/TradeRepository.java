@@ -126,15 +126,42 @@ public class TradeRepository {
     /**
      * 查询我的交易列表（分页）
      */
-    public List<Trade> findMyTrades(Long userId, Integer status, int page, int size) {
+    /**
+     * 查询我的交易列表（支持多个状态）
+     * @param userId 用户ID
+     * @param statusList 状态列表，null表示查询全部
+     * @param page 页码
+     * @param size 每页数量
+     */
+    public List<Trade> findMyTrades(Long userId, java.util.List<Integer> statusList, int page, int size) {
         int offset = (page - 1) * size;
         String sql;
         Object[] args;
-        if (status != null) {
-            sql = "SELECT * FROM trade WHERE (buyer_id = ? OR seller_id = ?) AND status = ? " +
-                    "ORDER BY create_time DESC LIMIT ? OFFSET ?";
-            args = new Object[] { userId, userId, status, size, offset };
+        
+        if (statusList != null && !statusList.isEmpty()) {
+            // 构建 IN 查询
+            StringBuilder statusPlaceholders = new StringBuilder();
+            for (int i = 0; i < statusList.size(); i++) {
+                if (i > 0) {
+                    statusPlaceholders.append(",");
+                }
+                statusPlaceholders.append("?");
+            }
+            
+            sql = "SELECT * FROM trade WHERE (buyer_id = ? OR seller_id = ?) AND status IN (" + 
+                  statusPlaceholders.toString() + ") ORDER BY create_time DESC LIMIT ? OFFSET ?";
+            
+            // 构建参数数组
+            args = new Object[2 + statusList.size() + 2];
+            args[0] = userId;
+            args[1] = userId;
+            for (int i = 0; i < statusList.size(); i++) {
+                args[2 + i] = statusList.get(i);
+            }
+            args[args.length - 2] = size;
+            args[args.length - 1] = offset;
         } else {
+            // 查询全部状态
             sql = "SELECT * FROM trade WHERE buyer_id = ? OR seller_id = ? " +
                     "ORDER BY create_time DESC LIMIT ? OFFSET ?";
             args = new Object[] { userId, userId, size, offset };

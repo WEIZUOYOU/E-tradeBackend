@@ -286,20 +286,18 @@ public class TradeController {
 
     /**
      * 获取我的交易列表
-     * GET /api/trade/my/list?userId=1&status=1&page=1&size=10
-     * 支持两种方式传参：session中的userId 或 请求参数中的userId（用于测试）
+     * GET /api/trade/my/list?status=0,1,2,3&page=1&size=10
+     * 从Session中自动获取当前用户ID
+     * status参数支持单个状态或多个状态（逗号分隔），不传则查询全部
      */
     @GetMapping("/my/list")
     public Result<Map<String, Object>> myTradeList(
-            @RequestParam(required = false) Long userId,
-            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             HttpSession session) {
-        // 优先使用请求参数中的userId，其次从session中获取
-        if (userId == null) {
-            userId = getCurrentUserId(session);
-        }
+        // 从Session中获取当前登录用户ID
+        Long userId = getCurrentUserId(session);
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
@@ -315,7 +313,21 @@ public class TradeController {
             size = 100;
         }
 
-        List<Trade> trades = tradeService.getMyTrades(userId, status, page, size);
+        // 解析status参数，支持逗号分隔的多个状态
+        List<Integer> statusList = null;
+        if (status != null && !status.trim().isEmpty()) {
+            statusList = new java.util.ArrayList<>();
+            String[] statusArray = status.split(",");
+            for (String s : statusArray) {
+                try {
+                    statusList.add(Integer.parseInt(s.trim()));
+                } catch (NumberFormatException e) {
+                    // 忽略无效的状态值
+                }
+            }
+        }
+
+        List<Trade> trades = tradeService.getMyTrades(userId, statusList, page, size);
 
         Map<String, Object> data = new HashMap<>();
         data.put("list", trades);

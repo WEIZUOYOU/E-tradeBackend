@@ -32,3 +32,13 @@ file:
 
 app:
   adminIds: 1              # 管理员用户ID，多个用逗号分隔，例如 "1,2,3"
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.campus.trade: DEBUG  # 项目包使用DEBUG级别，查看详细日志
+    com.campus.trade.service.ReviewService: DEBUG  # 评价服务详细日志
+    com.campus.trade.service.MessageService: DEBUG  # 消息服务详细日志
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

@@ -442,7 +442,14 @@ public class TradeService {
     /**
      * 获取我的交易列表（作为买家或卖家）
      */
-    public List<Trade> getMyTrades(Long userId, Integer status, int page, int size) {
+    /**
+     * 获取我的交易列表（支持多个状态）
+     * @param userId 用户ID
+     * @param statusList 状态列表，null表示查询全部
+     * @param page 页码
+     * @param size 每页数量
+     */
+    public List<Trade> getMyTrades(Long userId, java.util.List<Integer> statusList, int page, int size) {
         // 参数校验
         if (page < 1) {
             page = 1;
@@ -453,7 +460,7 @@ public class TradeService {
         if (size > 100) {
             size = 100;
         }
-        return tradeRepository.findMyTrades(userId, status, page, size);
+        return tradeRepository.findMyTrades(userId, statusList, page, size);
     }
 
     /**

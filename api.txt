@@ -1,10 +1,12 @@
 ================================================================================
  校园二手交易平台 — API 接口文档
- 版本: 1.5 | 基准路径: http://localhost:8082
- 更新日期: 2026-06-08
+ 版本: 1.7 | 基准路径: http://localhost:8080
+ 更新日期: 2026-06-09
  更新内容: 
    - 移除旧订单评价接口（/api/v1/trade/review）
    - 优化评价消息推送逻辑，避免连发卡片
+   - 【重要】评价查询接口改为从Session获取userId，不再需要传递userId参数
+   - 【重要】我的交易列表接口改为从Session获取userId，不再需要传递userId参数
 ================================================================================
 
 【统一响应格式】
@@ -393,14 +395,47 @@ Product对象结构:
          取消后自动恢复商品库存，状态变为5(已取消)
 
 31. 我的交易列表
-    GET /api/trade/my/list?status=1&page=1&size=10
-    认证: 需登录
+    GET /api/trade/my/list?status=0,1,2,3&page=1&size=10
+    认证: 需登录（从Session自动获取当前用户ID）
     查询参数:
-      status — 交易状态，选填（不传则查全部）
+      status — 交易状态，选填（支持单个状态或多个状态，逗号分隔；不传则查全部）
+               示例：status=1（单个状态）或 status=0,1,2,3（多个状态）
       page   — 页码，选填，默认1
       size   — 每页条数，选填，默认10，最大100
     返回: { "code": 200, "msg": "成功", "data": { "list": [<Trade列表>], "page": 1, "size": 10 } }
-    说明: 返回当前用户作为买家或卖家的所有交易，按创建时间倒序
+    说明: 
+    - 返回当前用户作为买家或卖家的所有交易，按创建时间倒序
+    - 无需传递userId参数，后端从Session中自动获取
+    - status参数支持逗号分隔的多个状态值
+    - 未登录返回401错误
+    - Android客户端需确保登录后保持Session/Cookie
+    - 💡 建议使用专用接口：/api/trade/active（进行中）和 /api/trade/completed（已完成）
+
+31a. 获取进行中的订单（推荐）
+    GET /api/trade/active?page=1&size=10
+    认证: 需登录（从Session自动获取当前用户ID）
+    查询参数:
+      page — 页码，选填，默认1
+      size — 每页条数，选填，默认10，最大100
+    返回: { "code": 200, "msg": "成功", "data": { "list": [<Trade列表>], "page": 1, "size": 10 } }
+    说明: 
+    - 返回状态为0、1、2、3的交易（待卖家确认、待交易、卖家已确认、买家已确认）
+    - 专为“进行中”Tab设计，无需传递status参数
+    - 性能更优，代码更简洁
+    - 💡 Android客户端切换Tab时推荐使用此接口
+
+31b. 获取已完成的订单（推荐）
+    GET /api/trade/completed?page=1&size=10
+    认证: 需登录（从Session自动获取当前用户ID）
+    查询参数:
+      page — 页码，选填，默认1
+      size — 每页条数，选填，默认10，最大100
+    返回: { "code": 200, "msg": "成功", "data": { "list": [<Trade列表>], "page": 1, "size": 10 } }
+    说明: 
+    - 返回状态为4、5、6、7、8的交易（已完成、已取消、买家已评价、卖家已评价、双方已评价）
+    - 专为“已完成”Tab设计，无需传递status参数
+    - 性能更优，代码更简洁
+    - 💡 Android客户端切换Tab时推荐使用此接口
 
 交易状态说明:
   0 - 待卖家确认：买家提交交易信息后，卖家可确认或拒绝
@@ -779,9 +814,9 @@ FavoriteResponse对象结构:
     - 6005: 不能评价自己
 
 49. 获取收到的评价
-    GET /api/review/received?userId={userId}
-    认证: 无需登录
-    查询参数: userId — 用户ID
+    GET /api/review/received
+    认证: 需登录（从Session自动获取当前用户ID）
+    请求参数: 无
     返回: 
     {
       "code": 200,
@@ -792,12 +827,16 @@ FavoriteResponse对象结构:
         "reviewCount": 15
       }
     }
-    说明: 返回用户收到的所有评价，按创建时间降序排列
+    说明: 
+    - 返回当前登录用户收到的所有评价，按创建时间降序排列
+    - 无需传递userId参数，后端从Session中自动获取
+    - 未登录返回401错误
+    - Android客户端需确保登录后保持Session/Cookie
 
 50. 获取给出的评价
-    GET /api/review/given?userId={userId}
-    认证: 无需登录
-    查询参数: userId — 用户ID
+    GET /api/review/given
+    认证: 需登录（从Session自动获取当前用户ID）
+    请求参数: 无
     返回: 
     {
       "code": 200,
@@ -808,7 +847,11 @@ FavoriteResponse对象结构:
         "reviewCount": 8
       }
     }
-    说明: 返回用户给出的所有评价，按创建时间降序排列
+    说明: 
+    - 返回当前登录用户给出的所有评价，按创建时间降序排列
+    - 无需传递userId参数，后端从Session中自动获取
+    - 未登录返回401错误
+    - Android客户端需确保登录后保持Session/Cookie
 
 51. 获取单条评价
     GET /api/review/{id}
@@ -993,3 +1036,90 @@ ReviewHistoryResponse对象结构:
 
 业务通用:
   9000  业务处理逻辑错误
+
+================================================================================
+重要更新说明 (v1.6)
+================================================================================
+
+【评价接口重大变更】
+
+变更日期: 2026-06-09
+影响接口:
+  - GET /api/review/received （获取收到的评价）
+  - GET /api/review/given     （获取给出的评价）
+
+变更内容:
+  1. 移除userId查询参数
+     - 修改前: GET /api/review/received?userId=123
+     - 修改后: GET /api/review/received
+  
+  2. 改为从Session获取当前用户ID
+     - 后端自动从HttpSession中读取userId
+     - 提高安全性，防止用户查询他人评价
+  
+  3. 增加登录验证
+     - 未登录访问返回401错误
+     - 与createReview等其他接口保持一致
+
+Android客户端适配指南:
+  
+  1. 移除URL中的userId参数
+     ```java
+     // 旧代码（错误）
+     String url = baseUrl + "/api/review/received?userId=" + userId;
+     
+     // 新代码（正确）
+     String url = baseUrl + "/api/review/received";
+     ```
+  
+  2. 确保Session/Cookie保持
+     ```java
+     // 使用OkHttp并启用Cookie管理
+     OkHttpClient client = new OkHttpClient.Builder()
+         .cookieJar(new CookieJar() {
+             private final HashMap<String, List<Cookie>> cookieStore = new HashMap<>();
+             
+             @Override
+             public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
+                 cookieStore.put(url.host(), cookies);
+             }
+             
+             @Override
+             public List<Cookie> loadForRequest(HttpUrl url) {
+                 List<Cookie> cookies = cookieStore.get(url.host());
+                 return cookies != null ? cookies : new ArrayList<Cookie>();
+             }
+         })
+         .build();
+     ```
+  
+  3. 调用顺序
+     ```
+     步骤1: 登录 → POST /api/user/login
+     步骤2: 保存响应中的Cookie/Session
+     步骤3: 获取评价 → GET /api/review/received (自动携带Cookie)
+     ```
+  
+  4. 错误处理
+     - 如果返回401，说明Session过期或未登录
+     - 需要重新调用登录接口
+
+优势:
+  ✓ 更安全：用户只能查询自己的评价
+  ✓ 更简单：不需要传递userId参数
+  ✓ 更一致：与其他接口风格统一
+  ✓ 防篡改：避免恶意查询他人数据
+
+兼容性:
+  ⚠️ 这是一个破坏性变更(Breaking Change)
+  ⚠️ Android客户端必须更新代码以适配新接口
+  ⚠️ 旧版本的客户端将无法正常使用评价查询功能
+
+测试建议:
+  1. 使用Postman测试新接口
+  2. 确认登录后能正常获取评价列表
+  3. 确认未登录时返回401错误
+  4. 验证Android客户端Session保持正常
+
+如有疑问，请联系后端开发团队。
+
