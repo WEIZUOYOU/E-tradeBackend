@@ -193,45 +193,50 @@ public class ReviewService {
             log.info("=== 评价通知开始 === tradeId={}, reviewerId={}, revieweeId={}, newStatus={}", 
                     trade.getId(), reviewerId, revieweeId, newStatus);
                 
-            // 如果是状态8（双方已评价），只发送一条“双方已评价”消息
-            // 不发送中间状态（6或7）的消息，避免连发两个卡片
-            if (newStatus == STATUS_BOTH_REVIEWED) {
-                // 检查5秒内是否已发送过相同的交易卡片消息，避免重复发送
-                boolean alreadySent = messageService.existsTradeCardMessage(
-                        reviewerId, revieweeId, trade.getId(), STATUS_BOTH_REVIEWED);
-                    
-                log.info("去重检查: alreadySent={}, senderId={}, receiverId={}, tradeId={}, status={}", 
-                        alreadySent, reviewerId, revieweeId, trade.getId(), STATUS_BOTH_REVIEWED);
-                    
-                if (alreadySent) {
-                    log.warn("⚠️ 评价通知消息已发送过，跳过重复发送: tradeId={}, status={}", 
-                            trade.getId(), newStatus);
-                    return;
-                }
-                    
-                // 双方都评价完成，只发送一条最终消息
-                SendMessageRequest request = new SendMessageRequest();
-                request.setReceiverId(revieweeId);
-                request.setProductId(trade.getProductId());
-                request.setContent("双方已评价");
-                request.setType(1); // 交易卡片消息
-                request.setTradeId(trade.getId());
-                request.setTradeStatus(STATUS_BOTH_REVIEWED); // 使用最终状态8
-    
-                log.info("📤 准备发送评价完成消息: receiverId={}, tradeId={}, status={}", 
-                        revieweeId, trade.getId(), STATUS_BOTH_REVIEWED);
-                    
-                messageService.sendMessage(reviewerId, request);
-                    
-                log.info("✅ 评价完成通知消息已发送: reviewerId={}, revieweeId={}, tradeId={}, status={}", 
-                        reviewerId, revieweeId, trade.getId(), newStatus);
+            // 检查5秒内是否已发送过相同状态的交易卡片消息，避免重复发送
+            boolean alreadySent = messageService.existsTradeCardMessage(
+                    reviewerId, revieweeId, trade.getId(), newStatus);
+                
+            log.info("去重检查: alreadySent={}, senderId={}, receiverId={}, tradeId={}, status={}", 
+                    alreadySent, reviewerId, revieweeId, trade.getId(), newStatus);
+                
+            if (alreadySent) {
+                log.warn("⚠️ 评价通知消息已发送过，跳过重复发送: tradeId={}, status={}", 
+                        trade.getId(), newStatus);
                 return;
             }
+            
+            // 根据不同状态发送不同的消息内容
+            String messageContent;
+            switch (newStatus) {
+                case STATUS_BUYER_REVIEWED:
+                    messageContent = "买家已评价，等待卖家评价";
+                    break;
+                case STATUS_SELLER_REVIEWED:
+                    messageContent = "卖家已评价，等待买家评价";
+                    break;
+                case STATUS_BOTH_REVIEWED:
+                    messageContent = "双方已评价";
+                    break;
+                default:
+                    messageContent = "评价已完成";
+            }
+            
+            SendMessageRequest request = new SendMessageRequest();
+            request.setReceiverId(revieweeId);
+            request.setProductId(trade.getProductId());
+            request.setContent(messageContent);
+            request.setType(1); // 交易卡片消息
+            request.setTradeId(trade.getId());
+            request.setTradeStatus(newStatus);
     
-            // 如果是中间状态（6或7），不发送消息，等另一方评价后发送状态8的消息
-            // 这避免了连发两个卡片的问题
-            log.info("⏸️ 跳过中间状态消息: tradeId={}, status={}（等待另一方评价后将发送最终消息）", 
-                    trade.getId(), newStatus);
+            log.info("📤 准备发送评价通知消息: receiverId={}, tradeId={}, status={}, content={}", 
+                    revieweeId, trade.getId(), newStatus, messageContent);
+                
+            messageService.sendMessage(reviewerId, request);
+                
+            log.info("✅ 评价通知消息已发送: reviewerId={}, revieweeId={}, tradeId={}, status={}", 
+                    reviewerId, revieweeId, trade.getId(), newStatus);
         } catch (Exception e) {
             // 消息发送失败不影响评价流程
             log.error("❌ 发送评价通知消息失败: tradeId={}, error={}", trade.getId(), e.getMessage(), e);
