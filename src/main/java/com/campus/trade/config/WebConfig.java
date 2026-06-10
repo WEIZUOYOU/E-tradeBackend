@@ -106,7 +106,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/product/list",
                         "/api/product/detail/**",
                         "/api/category/list",
-                        "/uploads/**"  // 排除静态资源路径
+                        "/uploads/**",
+                        "uploads/**"
                 );
     }
 }
